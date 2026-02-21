@@ -1,0 +1,307 @@
+import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { Activity, RefreshCw, Info, AlertCircle } from 'lucide-react';
+import { StatsCards } from '@/components/StatsCards';
+import { DataUpload } from '@/components/DataUpload';
+import { ComparisonTable } from '@/components/ComparisonTable';
+import { AccuracyChart } from '@/components/AccuracyChart';
+import { DatabaseConnector } from '@/components/DatabaseConnector';
+import { AddressColumnMapper, ColumnMapping } from '@/components/AddressColumnMapper';
+import { ComparisonResult, DashboardStats, SystemRecord, FieldRecord } from '@/types/logistics';
+import { comparisonApi, ApiError, type CompareRecord } from '@/lib/api';
+import { useAuthStore } from '@/store/useAuthStore';
+
+const Dashboard = () => {
+    const navigate = useNavigate();
+    const logout = useAuthStore(s => s.logout);
+
+    const [systemRecords, setSystemRecords] = useState<SystemRecord[]>([]);
+    const [fieldRecords, setFieldRecords] = useState<FieldRecord[]>([]);
+    const [results, setResults] = useState<ComparisonResult[]>([]);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [processLog, setProcessLog] = useState('');
+    const [processError, setProcessError] = useState<string | null>(null);
+    const [systemRawData, setSystemRawData] = useState<Record<string, string>[]>([]);
+    const [systemColumns, setSystemColumns] = useState<string[]>([]);
+    const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([]);
+
+    const stats: DashboardStats = {
+        total: results.length,
+        accurate: results.filter(r => r.category === 'accurate').length,
+        fairlyAccurate: results.filter(r => r.category === 'fairly_accurate').length,
+        inaccurate: results.filter(r => r.category === 'inaccurate').length,
+        pending: results.filter(r => r.category === 'pending').length,
+        error: results.filter(r => r.category === 'error').length,
+    };
+
+    const handleSystemDataLoad = useCallback((data: Record<string, string>[]) => {
+        if (data.length > 0) {
+            setSystemColumns(Object.keys(data[0]));
+            setSystemRawData(data);
+        }
+        const mapped: SystemRecord[] = data
+            .filter(row => row.connote || row.Connote || row.CONNOTE)
+            .map(row => ({
+                connote: (row.connote || row.Connote || row.CONNOTE || '').toUpperCase().trim(),
+                recipientName: row.recipient_name || row.Recipient_Name || row.nama_penerima || row.name || '',
+                address: row.address || row.Address || row.alamat || '',
+                city: row.city || row.City || row.kota || '',
+                province: row.province || row.Province || row.provinsi || '',
+                geocodeStatus: 'pending' as const,
+            }));
+        setSystemRecords(mapped);
+        setResults([]);
+        setProcessError(null);
+    }, []);
+
+    const handleFieldDataLoad = useCallback((data: Record<string, string>[]) => {
+        const mapped: FieldRecord[] = data
+            .filter(row =>
+                (row.connote || row.Connote || row.CONNOTE) &&
+                (row.lat || row.Lat) &&
+                (row.lng || row.Lng || row.lon || row.Lon),
+            )
+            .map(row => ({
+                connote: (row.connote || row.Connote || row.CONNOTE || '').toUpperCase().trim(),
+                lat: parseFloat(row.lat || row.Lat || row.latitude || '0'),
+                lng: parseFloat(row.lng || row.Lng || row.lon || row.Lon || row.longitude || '0'),
+                reportedBy: row.reported_by || row.tim || row.reporter || '',
+                reportDate: row.report_date || row.tanggal || row.date || '',
+            }));
+        setFieldRecords(mapped);
+        setResults([]);
+        setProcessError(null);
+    }, []);
+
+    const buildAddress = (rawRow: Record<string, string>, sys: SystemRecord): string => {
+        if (columnMappings.length > 0) {
+            const m = columnMappings[0];
+            const parts = [
+                m.col1 ? rawRow[m.col1] : '',
+                m.col2 ? rawRow[m.col2] : '',
+                m.col3 ? rawRow[m.col3] : '',
+            ].filter(p => p && p.trim());
+            return parts.join(m.separator);
+        }
+        return `${sys.address}, ${sys.city}, ${sys.province}`;
+    };
+
+    const handleProcess = async () => {
+        if (systemRecords.length === 0 || fieldRecords.length === 0) return;
+
+        setIsProcessing(true);
+        setProcessError(null);
+        setProcessLog('Mengirim data ke backend...');
+
+        const fieldMap = new Map<string, FieldRecord>();
+        fieldRecords.forEach(f => fieldMap.set(f.connote, f));
+
+        const rawDataMap = new Map<string, Record<string, string>>();
+        systemRawData.forEach(row => {
+            const connote = (row.connote || row.Connote || row.CONNOTE || '').toUpperCase().trim();
+            if (connote) rawDataMap.set(connote, row);
+        });
+
+        const records: CompareRecord[] = systemRecords
+            .map(sys => {
+                const rawRow = rawDataMap.get(sys.connote) ?? {};
+                const fieldData = fieldMap.get(sys.connote);
+                if (!fieldData) return null;
+                return {
+                    connote: sys.connote,
+                    recipient_name: sys.recipientName || undefined,
+                    system_address: buildAddress(rawRow, sys),
+                    field_lat: fieldData.lat,
+                    field_lng: fieldData.lng,
+                } satisfies CompareRecord;
+            })
+            .filter((r): r is NonNullable<typeof r> => r !== null);
+
+        const noFieldResults: ComparisonResult[] = systemRecords
+            .filter(sys => !fieldMap.has(sys.connote))
+            .map(sys => ({
+                connote: sys.connote,
+                recipientName: sys.recipientName,
+                systemAddress: buildAddress(rawDataMap.get(sys.connote) ?? {}, sys),
+                category: 'error' as const,
+                geocodeStatus: 'error' as const,
+            }));
+
+        if (records.length === 0) {
+            setResults(noFieldResults);
+            setProcessLog('Tidak ada data lapangan yang cocok dengan data sistem.');
+            setIsProcessing(false);
+            return;
+        }
+
+        try {
+            setProcessLog(`Memproses ${records.length} record via Go backend...`);
+            const res = await comparisonApi.compareBatch({ records });
+
+            const backendResults: ComparisonResult[] = res.results.map(item => ({
+                connote: item.connote,
+                recipientName: item.recipient_name,
+                systemAddress: item.system_address,
+                systemLat: item.system_lat,
+                systemLng: item.system_lng,
+                fieldLat: item.field_lat,
+                fieldLng: item.field_lng,
+                distanceMeters: item.distance_meters,
+                category: item.category,
+                geocodeStatus: item.geocode_status,
+            }));
+
+            setResults([...backendResults, ...noFieldResults]);
+            setProcessLog(`Selesai! ${res.processed} diproses, ${res.errors} error.`);
+            toast.success(`Selesai memproses ${res.processed} dari ${res.total} record.`);
+        } catch (err) {
+            if (err instanceof ApiError) {
+                if (err.status === 0) {
+                    const msg = 'Tidak dapat menghubungi backend. Pastikan server Go berjalan.';
+                    setProcessError(msg);
+                    toast.error(msg);
+                } else if (err.status === 401) {
+                    toast.error('Sesi Anda telah berakhir. Silakan masuk kembali.');
+                    logout();
+                    navigate('/login');
+                } else {
+                    setProcessError(`Error dari backend: ${err.message}`);
+                    toast.error(err.message);
+                }
+            } else {
+                const msg = 'Terjadi kesalahan tak terduga saat memproses.';
+                setProcessError(msg);
+                toast.error(msg);
+            }
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleReset = () => {
+        setSystemRecords([]);
+        setFieldRecords([]);
+        setResults([]);
+        setProcessLog('');
+        setProcessError(null);
+        setSystemRawData([]);
+        setSystemColumns([]);
+        setColumnMappings([]);
+    };
+
+    const canProcess = systemRecords.length > 0 && fieldRecords.length > 0 && !isProcessing;
+
+    return (
+        <div className="p-5 space-y-5 max-w-7xl mx-auto">
+            {/* Info Banner */}
+            <div
+                className="rounded-xl border p-4 flex gap-3"
+                style={{ background: 'hsl(var(--primary) / 0.05)', borderColor: 'hsl(var(--primary) / 0.2)' }}
+            >
+                <Info className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'hsl(var(--primary))' }} />
+                <div className="text-xs space-y-0.5" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                    <p className="font-medium" style={{ color: 'hsl(var(--foreground))' }}>Cara Penggunaan</p>
+                    <p>
+                        1. Upload CSV/Excel data sistem →&nbsp;
+                        2. Atur mapping kolom alamat →&nbsp;
+                        3. Upload data lapangan →&nbsp;
+                        4. Klik <strong style={{ color: 'hsl(var(--primary))' }}>Proses</strong>
+                    </p>
+                    <p className="mt-1">
+                        Geocoding diproses oleh <strong>Go backend</strong> — Nominatim geocoder dengan caching.
+                    </p>
+                </div>
+            </div>
+
+            {/* Stats */}
+            <StatsCards stats={stats} />
+
+            {/* Database Connector */}
+            <DatabaseConnector />
+
+            {/* Data Upload */}
+            <DataUpload
+                onSystemDataLoad={handleSystemDataLoad}
+                onFieldDataLoad={handleFieldDataLoad}
+                systemCount={systemRecords.length}
+                fieldCount={fieldRecords.length}
+            />
+
+            {/* Column Mapper */}
+            {systemColumns.length > 0 && (
+                <AddressColumnMapper
+                    availableColumns={systemColumns}
+                    onMappingChange={setColumnMappings}
+                    sampleRows={systemRawData.slice(0, 5)}
+                />
+            )}
+
+            {/* Process + Reset Buttons */}
+            {(systemRecords.length > 0 || fieldRecords.length > 0) && (
+                <div className="flex flex-wrap items-center gap-4">
+                    <button
+                        onClick={handleProcess}
+                        disabled={!canProcess}
+                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 active:scale-[0.98]"
+                        style={{
+                            background: canProcess ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                            color: canProcess ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
+                            boxShadow: canProcess ? '0 0 20px hsl(var(--primary) / 0.3)' : 'none',
+                        }}
+                    >
+                        {isProcessing ? (
+                            <><RefreshCw className="w-4 h-4 animate-spin" />Memproses...</>
+                        ) : (
+                            <><Activity className="w-4 h-4" />Proses &amp; Bandingkan</>
+                        )}
+                    </button>
+
+                    {(results.length > 0 || systemRecords.length > 0) && (
+                        <button
+                            onClick={handleReset}
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border transition-all hover:brightness-110 active:scale-[0.98]"
+                            style={{ color: 'hsl(var(--muted-foreground))' }}
+                        >
+                            <RefreshCw className="w-3.5 h-3.5" />Reset
+                        </button>
+                    )}
+
+                    {processLog && !processError && (
+                        <span className="text-xs font-mono" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                            {processLog}
+                        </span>
+                    )}
+                    {!canProcess && !isProcessing && (
+                        <span className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                            {systemRecords.length === 0 && '⬆ Upload data sistem'}
+                            {systemRecords.length > 0 && fieldRecords.length === 0 && '⬆ Upload data lapangan'}
+                        </span>
+                    )}
+                </div>
+            )}
+
+            {/* Error Banner */}
+            {processError && (
+                <div
+                    className="rounded-xl border p-4 flex gap-3"
+                    style={{ background: 'hsl(var(--destructive) / 0.05)', borderColor: 'hsl(var(--destructive) / 0.3)' }}
+                >
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'hsl(var(--destructive))' }} />
+                    <div>
+                        <p className="text-sm font-medium" style={{ color: 'hsl(var(--destructive))' }}>Gagal Memproses</p>
+                        <p className="text-xs mt-0.5" style={{ color: 'hsl(var(--muted-foreground))' }}>{processError}</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Charts */}
+            {results.length > 0 && <AccuracyChart stats={stats} />}
+
+            {/* Results Table */}
+            <ComparisonTable results={results} />
+        </div>
+    );
+};
+
+export default Dashboard;

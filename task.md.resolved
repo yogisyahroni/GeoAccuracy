@@ -1,0 +1,34 @@
+# Production Readiness & Auth Implementation Tasks
+
+## Phase 1: Architecture & Planning
+
+- [x] Gather requirements (Rules, Backend Guide, Agent Skills)
+- [/] Write Implementation Plan & Task list
+- [ ] Await User Approval
+
+## Phase 2: Backend Development (Golang)
+
+- [x] Initialize Go module (`backend/`)
+- [x] Setup Clean Architecture directories (`cmd/`, `internal/`, `pkg/`)
+- [x] Design PostgreSQL schema & create initial migrations (Users, Audit Logs, Geocode Cache)
+- [x] Implement Auth Module (Argon2id hashing, JWT access/refresh tokens)
+- [x] Implement Geocoding Wrapper (Nominatim, fallback/caching via Redis or DB)
+- [x] Implement Haversine Comparison Logic
+- [x] Setup RESTful API Routes (gin-gonic or Fiber) with Security Middleware (Rate Limiting, Helmet, CORS)
+- [x] Setup Docker & [docker-compose.yml](file:///e:/antigraviti%20google/project_putra/geoverify-logistics/docker-compose.yml) (App, PostgreSQL, Redis)
+
+## Phase 3: Frontend Development (React/Vite)
+
+- [/] Implement Auth Context/Store using Zustand & TanStack Query
+- [ ] Build Login & Registration pages (Zod + React Hook Form)
+- [ ] Create Protected Routes component
+- [ ] Refactor [Index.tsx](file:///e:/antigraviti%20google/project_putra/geoverify-logistics/src/pages/Index.tsx) to communicate with the Golang API instead of acting as a standalone tool
+- [ ] Implement API service calls (axios/fetch) for geocoding, comparing, and tracking history
+- [ ] Handle Loading/Error states globally and properly (Skeleton loaders, Error boundaries)
+
+## Phase 4: Integration & Security Audit
+
+- [ ] Perform E2E tests for the auth and geocoding scenarios
+- [ ] Security Code Review (Check imports, variables shadowing, mass assignment risks)
+- [ ] Fix any linting or build errors
+- [ ] Finalize documentation (README, backend instructions)

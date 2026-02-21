@@ -1,0 +1,21 @@
+2026/02/22 02:44:03 [Waterfall] Nominatim failed for 'Berlin': rate limited or forbidden by provider. Falling back...
+--- FAIL: TestGeocodeAddress_GeoapifyFallback (0.00s)
+    geocode_service_test.go:162: 
+        	Error Trace:	E:/antigraviti google/project_putra/geoverify-logistics/backend/internal/service/geocode_service_test.go:162
+        	Error:      	Not equal: 
+        	            	expected: 52.52
+        	            	actual  : 0
+        	Test:       	TestGeocodeAddress_GeoapifyFallback
+    geocode_service_test.go:163: 
+        	Error Trace:	E:/antigraviti google/project_putra/geoverify-logistics/backend/internal/service/geocode_service_test.go:163
+        	Error:      	Not equal: 
+        	            	expected: 13.405
+        	            	actual  : 0
+        	Test:       	TestGeocodeAddress_GeoapifyFallback
+2026/02/22 02:44:03 [Waterfall] Nominatim failed for 'Sydney': rate limited or forbidden by provider. Falling back...
+2026/02/22 02:44:03 [Waterfall] Geoapify failed for 'Sydney': rate limited or forbidden by provider. Falling back...
+2026/02/22 02:44:03 [Waterfall] PositionStack failed for 'Sydney': rate limited or forbidden by provider. Falling back...
+2026/02/22 02:44:03 [Waterfall] Nominatim failed for 'Nowhere': failed to geocode address: status 500. Falling back...
+FAIL
+FAIL	geoaccuracy-backend/internal/service	0.769s
+FAIL
