@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { integrationApi, DataSource, TableSchema, TransformationPipeline, ErpIntegrationRequest, ErpIntegration } from '../lib/api';
 import { Database, Plus, Play, Server, DatabaseZap, Loader2, Clock, CheckCircle2, RefreshCw, Key, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 
 export default function DataIntegration() {
     const queryClient = useQueryClient();
@@ -287,10 +288,12 @@ export default function DataIntegration() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Add Connection Form */}
                             <div className="bg-card p-6 rounded-lg border border-border shadow-sm">
-                                <h2 className="text-lg font-semibold mb-4">Add Database</h2>
+                                <h2 className="text-lg font-semibold mb-4 flex items-center">Tambah Database
+                                    <InfoTooltip info="Sambungkan ke database eksternal (PostgreSQL/MySQL). Data dari database ini dapat digunakan sebagai sumber pipeline ETL untuk validasi geolokasi." side="right" />
+                                </h2>
                                 <form onSubmit={handleAddConn} className="space-y-4">
                                     <div>
-                                        <label className="block text-sm font-medium mb-1">Name</label>
+                                        <label className="block text-sm font-medium mb-1 flex items-center">Nama Koneksi <InfoTooltip info="Nama pengenal untuk koneksi ini. Gunakan nama yang mudah diingat." example="Contoh: Database Produksi, DB Warehouse" /></label>
                                         <input required type="text" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={connForm.name} onChange={e => setConnForm({ ...connForm, name: e.target.value })} />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
@@ -419,11 +422,11 @@ export default function DataIntegration() {
                             {/* Add ERP Form */}
                             <div className="lg:col-span-2 space-y-6">
                                 <div className="bg-card rounded-xl p-8 border border-border shadow-sm">
-                                    <h2 className="text-2xl font-semibold tracking-tight mb-6">Create New Connection</h2>
+                                    <h2 className="text-2xl font-semibold tracking-tight mb-6 flex items-center">Buat Koneksi ERP Baru <InfoTooltip info="Hubungkan sistem ERP eksternal (SAP, Oracle, dsb.) melalui HTTP API. Data akan ditarik/dikirim secara otomatis sesuai jadwal Cron yang ditentukan." side="right" /></h2>
                                     <form onSubmit={handleAddErp} className="space-y-5">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium text-foreground">Integration Name</label>
+                                                <label className="text-sm font-medium text-foreground flex items-center">Nama Integrasi <InfoTooltip info="Nama pengenal untuk integrasi ERP ini. Pilih nama yang mencerminkan sistem sumber dan tujuannya." example="Contoh: SAP Logistik Alpha, Oracle WMS Surabaya" /></label>
                                                 <input
                                                     required type="text"
                                                     disabled={createErpMutation.isPending}
@@ -434,7 +437,7 @@ export default function DataIntegration() {
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium text-foreground">HTTP Method</label>
+                                                <label className="text-sm font-medium text-foreground flex items-center">Metode HTTP <InfoTooltip info="Pilih GET untuk mengambil data dari API ERP (pull). Pilih POST untuk mengirim data ke API ERP (push)." example="GET = Ambil data dari ERP  |  POST = Kirim data ke ERP" /></label>
                                                 <select
                                                     value={erpForm.method}
                                                     disabled={createErpMutation.isPending}
@@ -448,7 +451,7 @@ export default function DataIntegration() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-foreground">API Endpoint URL</label>
+                                            <label className="text-sm font-medium text-foreground flex items-center">URL Endpoint API <InfoTooltip info="Alamat lengkap endpoint API ERP yang akan dipanggil. Harus diawali dengan https:// untuk keamanan." example="https://api.erp-perusahaan.com/v1/shipments" /></label>
                                             <input
                                                 required type="url"
                                                 disabled={createErpMutation.isPending}
@@ -473,7 +476,7 @@ export default function DataIntegration() {
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium text-foreground">Header Value / Secret API Key</label>
+                                                <label className="text-sm font-medium text-foreground flex items-center">Nilai Header / Kunci Rahasia <InfoTooltip info="Nilai token atau API key yang akan dikirim pada header. Disimpan terenkripsi AES-256. Jangan bagikan nilai ini." example="Bearer eyJhbGci...  atau  sk_live_xxxxxxxxxxx" /></label>
                                                 <input
                                                     type="password"
                                                     disabled={createErpMutation.isPending}
@@ -582,17 +585,17 @@ export default function DataIntegration() {
                                 <div className="space-y-4 mb-6">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium mb-1">Pipeline Name</label>
+                                            <label className="block text-sm font-medium mb-1 flex items-center">Nama Pipeline <InfoTooltip info="Nama untuk menyimpan konfigurasi pipeline ini. Anda dapat memilih pipeline yang tersimpan dari dropdown di atas." example="Contoh: Sync Harian Orders, ETL Bulanan" /></label>
                                             <input type="text" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={pipelineName} onChange={e => setPipelineName(e.target.value)} placeholder="e.g. Daily Sync" />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium mb-1">Base Table</label>
+                                            <label className="block text-sm font-medium mb-1 flex items-center">Tabel Utama (Base Table) <InfoTooltip info="Nama tabel utama di database sumber yang menjadi titik awal pengambilan data. Pipeline akan mulai query dari tabel ini." example="Contoh: orders, users, shipments" /></label>
                                             <input type="text" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={baseTable} onChange={e => setBaseTable(e.target.value)} placeholder="e.g. users" />
                                         </div>
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium mb-1">Table Joins (Optional)</label>
+                                        <label className="block text-sm font-medium mb-1 flex items-center">Gabungkan Tabel (Table Joins) — Opsional <InfoTooltip info="Gabungkan tabel lain ke tabel utama menggunakan LEFT JOIN atau INNER JOIN. Berguna jika data alamat tersebar di beberapa tabel." example="LEFT JOIN: orders + users ON orders.user_id = users.id" /></label>
                                         <div className="space-y-3">
                                             {joins.map((j, idx) => (
                                                 <div key={idx} className="flex gap-3 items-start">
@@ -612,7 +615,7 @@ export default function DataIntegration() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium mb-1">Row Filters (Optional)</label>
+                                        <label className="block text-sm font-medium mb-1 flex items-center">Filter Baris (Row Filters) — Opsional <InfoTooltip info="Saring data berdasarkan kondisi tertentu. Hanya baris yang memenuhi kondisi yang akan diproses oleh pipeline." example="Contoh: created_at >= 2024-01-01  |  status = active" /></label>
                                         <div className="space-y-3">
                                             {filters.map((f, idx) => (
                                                 <div key={idx} className="flex gap-3 items-start">
@@ -636,7 +639,7 @@ export default function DataIntegration() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium mb-1">Column Mappings</label>
+                                        <label className="block text-sm font-medium mb-1 flex items-center">Pemetaan Kolom (Column Mappings) <InfoTooltip info="Tentukan kolom target dan ekspresi SQL untuk menghasilkan alamat lengkap yang akan digeokode. Kolom 'full_address' wajib ada." example="full_address → CONCAT(jalan, ', ', kota, ', ', provinsi)" /></label>
                                         <div className="space-y-3">
                                             {mappings.map((m, idx) => (
                                                 <div key={idx} className="flex gap-3 items-start">
@@ -652,12 +655,13 @@ export default function DataIntegration() {
                                     <div className="pt-4 border-t border-border">
                                         <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
                                             <Clock className="w-4 h-4 text-primary" />
-                                            Automation & Scheduling
+                                            Otomatisasi &amp; Penjadwalan
+                                            <InfoTooltip info="Jalankan pipeline secara otomatis sesuai jadwal. Pipeline akan berjalan di background tanpa perlu klik manual." example="Setiap hari = 0 0 * * *  |  Setiap jam = 0 * * * *" side="right" />
                                         </h3>
                                         <div className="flex items-center gap-4">
                                             <label className="flex items-center gap-2 text-sm">
                                                 <input type="checkbox" className="rounded text-primary focus:ring-primary" checked={cronActive} onChange={(e) => setCronActive(e.target.checked)} />
-                                                Enable Scheduled Execution
+                                                Aktifkan Eksekusi Terjadwal
                                             </label>
 
                                             {cronActive && (
