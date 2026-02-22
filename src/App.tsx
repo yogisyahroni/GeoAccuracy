@@ -14,6 +14,8 @@ import HistoryPage from '@/pages/History';
 import AnalyticsPage from '@/pages/Analytics';
 import SettingsPage from '@/pages/Settings';
 import DataIntegrationPage from '@/pages/DataIntegration';
+import AreasPage from '@/pages/Areas';
+import AdvancedAnalyticsPage from '@/pages/AdvancedAnalytics';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,7 +42,9 @@ function AppRoutes() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/advanced-analytics" element={<AdvancedAnalyticsPage />} />
         <Route path="/integration" element={<DataIntegrationPage />} />
+        <Route path="/areas" element={<AreasPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
 

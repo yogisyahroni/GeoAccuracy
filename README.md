@@ -29,7 +29,7 @@ Aplikasi ini menggunakan pendekatan **"Pushdown ELT"** untuk integrasi data ting
 Aplikasi ini dipisahkan menjadi dua bagian utama (Backend Application & Frontend SPA).
 
 | Komponen | Teknologi | Keterangan |
-|---|---|---|
+| --- | --- | --- |
 | **Frontend** | React 18, Vite, TypeScript | Mengelola antarmuka Single Page Application (SPA). |
 | **Styling** | Tailwind CSS, Lucide Icons | UI modern dengan pendekatan visual glassmorphism. |
 | **State & API** | Zustand, TanStack Query | Caching jaringan, state global, dan optimistic updates. |
@@ -115,6 +115,15 @@ docker-compose up -d --build
 Perintah ini akan menyalakan container untuk *PostgreSQL*, me-*build* image backend *Go*, serta menghosting aplikasi *React* ke dalam jaringan yang sama.
 
 ### 5. Deployment ke Production Server (Linux VPS)
+
+Kami telah merangkum skema container orchestrator ke dalam skrip bash eksekusi satu atap. Pada mesin VPS kosongan yang terinstal API Docker:
+
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+Atau jika ingin mengeksekusi instalasi secara manual tanpa Docker:
 
 1. Ubah `APP_ENV=production` pada file `.env`.
 2. Lakukan build frontend:

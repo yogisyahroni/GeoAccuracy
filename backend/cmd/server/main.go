@@ -9,6 +9,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+
 	"geoaccuracy-backend/config"
 	"geoaccuracy-backend/internal/api"
 	"geoaccuracy-backend/internal/api/handlers"
@@ -35,6 +37,11 @@ func main() {
 	settingsRepo := repository.NewSettingsRepository(database)
 	historyRepo := repository.NewHistoryRepository(database)
 	dsRepo := repository.NewDataSourceRepository(database)
+	areaRepo := repository.NewAreaRepository(database)
+	webhookRepo := repository.NewWebhookRepository(database)
+
+	sqlxDB := sqlx.NewDb(database, "postgres")
+	analyticsRepo := repository.NewAnalyticsRepository(sqlxDB)
 
 	// 4. Setup Services
 	authSvc := service.NewAuthService(userRepo, cfg)
@@ -44,12 +51,23 @@ func main() {
 	settingsSvc := service.NewSettingsService(settingsRepo)
 	dsSvc := service.NewDataSourceService(dsRepo, cfg)
 	etlSvc := service.NewETLService(dsRepo, cfg)
-	schedulerSvc := service.NewSchedulerService(dsSvc, etlSvc, compSvc)
+
+	// Create Webhook and ERP services before Scheduler
+	webhookSvc := service.NewWebhookService(webhookRepo, compSvc, analyticsRepo)
+	erpRepo := repository.NewErpIntegrationRepository(sqlxDB)
+	erpSvc := service.NewErpIntegrationService(erpRepo, cfg, webhookSvc)
+
+	// Now Scheduler can accept all dependencies including ERP
+	schedulerSvc := service.NewSchedulerService(dsSvc, etlSvc, compSvc, erpSvc)
+	areaSvc := service.NewAreaService(areaRepo)
 
 	// Start scheduler and load active jobs
 	schedulerSvc.Start()
 	if err := schedulerSvc.ReloadPipelines(context.Background()); err != nil {
 		log.Printf("Warning: Failed to load scheduled pipelines: %v", err)
+	}
+	if err := schedulerSvc.ReloadErpIntegrations(context.Background()); err != nil {
+		log.Printf("Warning: Failed to load scheduled ERP Syncs: %v", err)
 	}
 	defer schedulerSvc.Stop()
 
@@ -60,9 +78,13 @@ func main() {
 	settingsHandler := handlers.NewSettingsHandler(settingsSvc)
 	historyHandler := handlers.NewHistoryHandler(historySvc)
 	dsHandler := handlers.NewDataSourceHandler(dsSvc, etlSvc, compSvc, schedulerSvc)
+	areaHandler := handlers.NewAreaHandler(areaSvc)
+	webhookHandler := handlers.NewWebhookHandler(webhookSvc)
+	analyticsHandler := handlers.NewAnalyticsHandler(analyticsRepo)
+	erpHandler := handlers.NewErpIntegrationHandler(erpSvc)
 
 	// 6. Setup Router
-	router := api.SetupRouter(cfg, authHandler, geoHandler, compHandler, settingsHandler, historyHandler, dsHandler)
+	router := api.SetupRouter(cfg, authHandler, geoHandler, compHandler, settingsHandler, historyHandler, dsHandler, areaHandler, webhookHandler, analyticsHandler, erpHandler, webhookRepo)
 
 	// 7. Start Server with Graceful Shutdown
 	srv := &http.Server{

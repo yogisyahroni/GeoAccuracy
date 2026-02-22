@@ -11,7 +11,10 @@ import {
     ChevronLeft,
     ChevronRight,
     User,
-    DatabaseZap,
+    Database,
+    MapPin,
+    TrendingUp,
+    FileText,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 
@@ -23,9 +26,11 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/integration', icon: DatabaseZap, label: 'Integarasi Data' },
-    { to: '/history', icon: History, label: 'Riwayat' },
-    { to: '/analytics', icon: BarChart3, label: 'Analitik' },
+    { to: '/integration', icon: Database, label: 'Integarasi Data' },
+    { to: '/areas', icon: MapPin, label: 'Manajemen Area' },
+    { to: '/history', icon: FileText, label: 'Riwayat Validasi' },
+    { to: '/analytics', icon: BarChart3, label: 'Analitik Topologi' },
+    { to: '/advanced-analytics', icon: TrendingUp, label: 'Performa Kurir' },
     { to: '/settings', icon: Settings, label: 'Pengaturan' },
 ];
 
@@ -83,7 +88,13 @@ export function Sidebar() {
 
             {/* ── Nav Items ─────────────────────────────────────────────── */}
             <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
-                {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
+                {NAV_ITEMS.filter(item => {
+                    const isObserver = user?.role === 'observer';
+                    if (isObserver && (item.label === 'Pengaturan' || item.label === 'Integarasi Data')) {
+                        return false;
+                    }
+                    return true;
+                }).map(({ to, icon: Icon, label }) => (
                     <NavLink
                         key={to}
                         to={to}
@@ -141,7 +152,7 @@ export function Sidebar() {
                                 className="overflow-hidden"
                             >
                                 <p className="text-xs font-medium truncate max-w-[120px]" style={{ color: 'hsl(var(--foreground))' }}>
-                                    {user?.username ?? user?.email ?? 'User'}
+                                    {user?.name ?? user?.email ?? 'User'}
                                 </p>
                                 <p className="text-[10px] truncate max-w-[120px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
                                     {user?.email ?? ''}

@@ -40,7 +40,7 @@ func (s *authService) Register(ctx context.Context, req domain.RegisterRequest) 
 		Name:         req.Name,
 		Email:        req.Email,
 		PasswordHash: hashedPassword,
-		Role:         "user", // default role
+		Role:         "observer", // default role is now observer
 	}
 
 	if err := s.userRepo.CreateUser(ctx, user); err != nil {

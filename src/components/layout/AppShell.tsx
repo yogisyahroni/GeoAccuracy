@@ -5,8 +5,9 @@ import { Sidebar } from './Sidebar';
 // Breadcrumb labels by route
 const PAGE_TITLES: Record<string, string> = {
     '/': 'Dashboard',
-    '/history': 'Riwayat Sesi',
-    '/analytics': 'Analitik',
+    '/history': 'Riwayat Validasi',
+    '/analytics': 'Analitik Topologi',
+    '/advanced-analytics': 'Performa Kurir (SLA)',
     '/settings': 'Pengaturan',
 };
 

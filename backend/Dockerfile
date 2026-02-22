@@ -1,36 +1,32 @@
-FROM golang:1.21-alpine AS builder
+# syntax=docker/dockerfile:1
+# Build Stage
+FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
-# Install git and other build dependencies
+# Install dependencies required for building (if any native C libraries are needed in future, add gcc musl-dev)
 RUN apk add --no-cache git
 
 # Copy go mod and sum files
 COPY go.mod go.sum ./
-
-# Download all dependencies.
 RUN go mod download
 
-# Copy the source code
+# Copy source code
 COPY . .
 
-# Build the application (disable CGO for statically linked binary)
-RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/server/main.go
+# Build the application statically linked
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o server ./cmd/server/main.go
 
-# ---
+# Production Stage
+FROM gcr.io/distroless/static-debian12:latest-amd64
 
-FROM alpine:3.18
+WORKDIR /
 
-WORKDIR /app
+# Copy the pre-built binary
+COPY --from=builder /app/server /server
 
-# Add CA certificates for HTTPS requests (e.g. to Nominatim)
-RUN apk --no-cache add ca-certificates tzdata
+# Expose port (default 8081 for backend)
+EXPOSE 8081
 
-# Copy the Pre-built binary file from the previous stage
-COPY --from=builder /app/main .
-
-# Expose port 8080 to the outside world
-EXPOSE 8080
-
-# Run the executable
-CMD ["./main"]
+# Command to run
+CMD ["/server"]

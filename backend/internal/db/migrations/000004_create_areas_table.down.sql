@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS idx_areas_geom;
+DROP TABLE IF EXISTS areas;

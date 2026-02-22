@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Key, CheckCircle2, Save, Loader2, Eye, EyeOff, Shield, User, Info } from 'lucide-react';
+import { Key, CheckCircle2, Save, Loader2, Eye, EyeOff, Shield, User, Info, TerminalSquare, Copy, Trash2 } from 'lucide-react';
 import { settingsApi, type UserSettings } from '@/lib/api';
+import { webhookAPI, type ExternalAPIKey } from '@/services/api/webhooks';
 
-type Tab = 'maps' | 'profile' | 'about';
+type Tab = 'maps' | 'developer' | 'profile' | 'about';
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('maps');
@@ -17,6 +18,7 @@ export default function SettingsPage() {
             >
                 {([
                     { id: 'maps' as Tab, label: 'API Maps', icon: Key },
+                    { id: 'developer' as Tab, label: 'Developer', icon: TerminalSquare },
                     { id: 'profile' as Tab, label: 'Profil', icon: User },
                     { id: 'about' as Tab, label: 'Tentang', icon: Shield },
                 ] as const).map(({ id, label, icon: Icon }) => (
@@ -38,6 +40,7 @@ export default function SettingsPage() {
 
             {/* Tab content */}
             {activeTab === 'maps' && <MapsAPITab />}
+            {activeTab === 'developer' && <DeveloperTab />}
             {activeTab === 'profile' && <ProfileTab />}
             {activeTab === 'about' && <AboutTab />}
         </div>
@@ -219,6 +222,174 @@ function MapsAPITab() {
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     {saving ? 'Menyimpan...' : 'Simpan Pengaturan'}
                 </button>
+            </div>
+        </div>
+    );
+}
+
+// ─── Tab: Developer / Webhook Keys ──────────────────────────────────────────
+
+function DeveloperTab() {
+    const [keys, setKeys] = useState<ExternalAPIKey[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [generating, setGenerating] = useState(false);
+    const [newKeyName, setNewKeyName] = useState('');
+    const [newlyGeneratedKey, setNewlyGeneratedKey] = useState<string | null>(null);
+
+    const loadKeys = async () => {
+        setLoading(true);
+        try {
+            const data = await webhookAPI.listAPIKeys();
+            setKeys(data);
+        } catch {
+            toast.error('Gagal memuat API Keys eksternal');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadKeys();
+    }, []);
+
+    const handleGenerate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newKeyName.trim()) return;
+
+        setGenerating(true);
+        try {
+            const res = await webhookAPI.createAPIKey(newKeyName);
+            setNewlyGeneratedKey(res.rawKey);
+            setNewKeyName('');
+            toast.success('API Key berhasil dibuat');
+            loadKeys();
+        } catch (err: any) {
+            toast.error(err.message || 'Gagal membuat API Key');
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    const handleRevoke = async (id: string, name: string) => {
+        if (!confirm(`Hapus hak akses untuk kunci "${name}"? Kunci ini akan segera tidak valid.`)) return;
+
+        try {
+            await webhookAPI.revokeAPIKey(id);
+            toast.success('API Key berhasil di-revoke');
+            loadKeys();
+        } catch {
+            toast.error('Gagal menghapus API Key');
+        }
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        toast.success('Ter-copy ke clipboard');
+    };
+
+    return (
+        <div className="section-card p-6 space-y-6">
+            <div className="flex items-start gap-3">
+                <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: 'hsl(var(--primary) / 0.1)', border: '1px solid hsl(var(--primary) / 0.2)' }}
+                >
+                    <TerminalSquare className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />
+                </div>
+                <div>
+                    <p className="text-sm font-semibold" style={{ color: 'hsl(var(--foreground))' }}>Ingestion Webhooks</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                        Gunakan API Key eksternal untuk mengintegrasikan sistem pihak ketiga (ERP/WMS) secara aman tanpa perlu session login, gunakan header <code className="bg-primary/20 text-primary px-1 rounded">X-API-Key: sk_prod_...</code>
+                    </p>
+                </div>
+            </div>
+
+            {/* New Key Alert */}
+            {newlyGeneratedKey && (
+                <div className="p-4 rounded-xl border border-primary bg-primary/5 space-y-3">
+                    <p className="text-sm font-semibold text-primary">Simpan API Key Ini Sekarang!</p>
+                    <p className="text-xs text-muted-foreground">Kunci ini tidak akan pernah ditampilkan lagi demi tujuan keamanan.</p>
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="text"
+                            readOnly
+                            value={newlyGeneratedKey}
+                            className="flex-1 px-3 py-2 text-sm font-mono bg-background border border-border rounded-lg outline-none"
+                        />
+                        <button
+                            onClick={() => copyToClipboard(newlyGeneratedKey)}
+                            className="p-2 bg-primary text-primary-foreground rounded-lg hover:brightness-110 active:scale-95 transition-all"
+                        >
+                            <Copy className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Generator Form */}
+            <form onSubmit={handleGenerate} className="flex gap-2 items-end pt-2">
+                <div className="flex-1 space-y-1">
+                    <label className="text-xs font-medium text-foreground">Nama Aplikasi Eksternal</label>
+                    <input
+                        type="text"
+                        value={newKeyName}
+                        onChange={e => setNewKeyName(e.target.value)}
+                        placeholder="Cth: SAP Transport Prod"
+                        className="w-full h-10 px-3 rounded-lg text-sm border outline-none focus:ring-2 bg-surface-2 border-border text-foreground transition-all"
+                        style={{ '--tw-ring-color': 'hsl(var(--primary) / 0.15)' } as React.CSSProperties}
+                        required
+                        minLength={3}
+                    />
+                </div>
+                <button
+                    type="submit"
+                    disabled={generating || !newKeyName.trim()}
+                    className="h-10 px-4 flex items-center justify-center gap-2 bg-primary text-primary-foreground font-medium text-sm rounded-lg hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
+                >
+                    {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
+                    Buat Kunci
+                </button>
+            </form>
+
+            <hr className="border-border" />
+
+            {/* Key List */}
+            <div className="space-y-3">
+                <p className="text-sm font-semibold text-foreground">Kunci API Aktif</p>
+                {loading ? (
+                    <div className="flex items-center justify-center p-6">
+                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    </div>
+                ) : keys.length === 0 ? (
+                    <p className="text-sm text-center p-6 text-muted-foreground border border-dashed border-border rounded-xl">
+                        Belum ada Webhook Key aktif.
+                    </p>
+                ) : (
+                    <div className="space-y-2">
+                        {keys.map(k => (
+                            <div key={k.id} className="flex items-center justify-between p-3 border border-border bg-surface-2 rounded-xl">
+                                <div>
+                                    <p className="text-sm font-medium text-foreground">{k.name}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <code className="text-xs px-1.5 py-0.5 rounded bg-foreground/10 text-muted-foreground font-mono">
+                                            {k.prefix}••••
+                                        </code>
+                                        <span className="text-[10px] text-muted-foreground">
+                                            Dibuat: {new Date(k.createdAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => handleRevoke(k.id, k.name)}
+                                    className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                                    title="Revoke Token"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

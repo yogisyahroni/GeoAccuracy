@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"sync"
 
@@ -22,24 +23,30 @@ type SchedulerService interface {
 	ReloadPipelines(ctx context.Context) error
 	AddOrUpdateJob(ctx context.Context, p domain.TransformationPipeline) error
 	RemoveJob(pipelineID int64)
+
+	ReloadErpIntegrations(ctx context.Context) error
+	AddOrUpdateErpJob(ctx context.Context, i domain.ErpIntegration) error
+	RemoveErpJob(integrationID int64)
 }
 
 type schedulerService struct {
 	dsService   DataSourceService
 	etlService  ETLService
 	compService ComparisonService
+	erpService  domain.ErpIntegrationService
 	cronRunner  *cron.Cron
-	jobs        map[int64]cron.EntryID
+	jobs        map[string]cron.EntryID // Use string keys like "pipeline-1", "erp-1"
 	mu          sync.RWMutex
 }
 
-func NewSchedulerService(ds DataSourceService, etl ETLService, comp ComparisonService) SchedulerService {
+func NewSchedulerService(ds DataSourceService, etl ETLService, comp ComparisonService, erp domain.ErpIntegrationService) SchedulerService {
 	return &schedulerService{
 		dsService:   ds,
 		etlService:  etl,
 		compService: comp,
+		erpService:  erp,
 		cronRunner:  cron.New(), // Standard cron expression
-		jobs:        make(map[int64]cron.EntryID),
+		jobs:        make(map[string]cron.EntryID),
 	}
 }
 
@@ -70,10 +77,12 @@ func (s *schedulerService) AddOrUpdateJob(ctx context.Context, p domain.Transfor
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	key := fmt.Sprintf("pipeline-%d", p.ID)
+
 	// Check if exists, remove first
-	if entryID, exists := s.jobs[p.ID]; exists {
+	if entryID, exists := s.jobs[key]; exists {
 		s.cronRunner.Remove(entryID)
-		delete(s.jobs, p.ID)
+		delete(s.jobs, key)
 	}
 
 	var ext PipelineConfigExt
@@ -129,7 +138,7 @@ func (s *schedulerService) AddOrUpdateJob(ctx context.Context, p domain.Transfor
 		return err
 	}
 
-	s.jobs[p.ID] = entryID
+	s.jobs[key] = entryID
 	log.Printf("Successfully scheduled pipeline [%d] with cron '%s'", p.ID, ext.Cron)
 	return nil
 }
@@ -137,10 +146,82 @@ func (s *schedulerService) AddOrUpdateJob(ctx context.Context, p domain.Transfor
 func (s *schedulerService) RemoveJob(pipelineID int64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	if entryID, exists := s.jobs[pipelineID]; exists {
+	key := fmt.Sprintf("pipeline-%d", pipelineID)
+	if entryID, exists := s.jobs[key]; exists {
 		s.cronRunner.Remove(entryID)
-		delete(s.jobs, pipelineID)
+		delete(s.jobs, key)
 		log.Printf("Removed scheduled job for pipeline [%d]", pipelineID)
+	}
+}
+
+// ---------------------------------------------------------
+// ERP Integration Specific Scheduling Logic
+// ---------------------------------------------------------
+
+func (s *schedulerService) ReloadErpIntegrations(ctx context.Context) error {
+	if s.erpService == nil {
+		return nil
+	}
+	integrations, err := s.erpService.ListAllInternal(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, i := range integrations {
+		s.AddOrUpdateErpJob(ctx, i)
+	}
+	return nil
+}
+
+func (s *schedulerService) AddOrUpdateErpJob(ctx context.Context, i domain.ErpIntegration) error {
+	if s.erpService == nil {
+		return nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	key := fmt.Sprintf("erp-%d", i.ID)
+
+	// Remove old job if exists
+	if entryID, exists := s.jobs[key]; exists {
+		s.cronRunner.Remove(entryID)
+		delete(s.jobs, key)
+	}
+
+	// Wait, active / inactive might not be defined for ERP out of the box,
+	// assuming any valid non-empty cron schedule is active.
+	if i.CronSchedule == "" {
+		return nil
+	}
+
+	entryID, err := s.cronRunner.AddFunc(i.CronSchedule, func() {
+		log.Printf("Running scheduled ERP Sync [%d]: %s", i.ID, i.Name)
+		jobCtx := context.Background()
+
+		if err := s.erpService.ExecuteSyncJob(jobCtx, i.ID); err != nil {
+			log.Printf("ERROR running scheduled ERP Sync [%d]: %v", i.ID, err)
+		} else {
+			log.Printf("SUCCESS running scheduled ERP Sync [%d]", i.ID)
+		}
+	})
+
+	if err != nil {
+		log.Printf("Failed to schedule ERP Sync [%d]: %v", i.ID, err)
+		return err
+	}
+
+	s.jobs[key] = entryID
+	log.Printf("Successfully scheduled ERP Sync [%d] with cron '%s'", i.ID, i.CronSchedule)
+	return nil
+}
+
+func (s *schedulerService) RemoveErpJob(integrationID int64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	key := fmt.Sprintf("erp-%d", integrationID)
+	if entryID, exists := s.jobs[key]; exists {
+		s.cronRunner.Remove(entryID)
+		delete(s.jobs, key)
+		log.Printf("Removed scheduled job for ERP Sync [%d]", integrationID)
 	}
 }

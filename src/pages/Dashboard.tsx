@@ -15,6 +15,8 @@ import { useAuthStore } from '@/store/useAuthStore';
 const Dashboard = () => {
     const navigate = useNavigate();
     const logout = useAuthStore(s => s.logout);
+    const user = useAuthStore(s => s.user);
+    const isObserver = user?.role === 'observer';
 
     const [systemRecords, setSystemRecords] = useState<SystemRecord[]>([]);
     const [fieldRecords, setFieldRecords] = useState<FieldRecord[]>([]);
@@ -214,19 +216,37 @@ const Dashboard = () => {
                 </div>
             </div>
 
+            {/* Observer Restriction Banner */}
+            {isObserver && (
+                <div
+                    className="rounded-xl border p-4 flex gap-3"
+                    style={{ background: 'hsl(var(--destructive) / 0.05)', borderColor: 'hsl(var(--destructive) / 0.3)' }}
+                >
+                    <Info className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'hsl(var(--destructive))' }} />
+                    <div className="text-xs space-y-0.5" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                        <p className="font-medium" style={{ color: 'hsl(var(--destructive))' }}>Mode Akses Terbatas (Observer)</p>
+                        <p>
+                            Sebagai Observer, Anda hanya diizinkan untuk melihat laporan analitik dan riwayat. Fitur unggah data dan integrasi konektor dinonaktifkan.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* Stats */}
             <StatsCards stats={stats} />
 
             {/* Database Connector */}
-            <DatabaseConnector />
+            {!isObserver && <DatabaseConnector />}
 
             {/* Data Upload */}
-            <DataUpload
-                onSystemDataLoad={handleSystemDataLoad}
-                onFieldDataLoad={handleFieldDataLoad}
-                systemCount={systemRecords.length}
-                fieldCount={fieldRecords.length}
-            />
+            {!isObserver && (
+                <DataUpload
+                    onSystemDataLoad={handleSystemDataLoad}
+                    onFieldDataLoad={handleFieldDataLoad}
+                    systemCount={systemRecords.length}
+                    fieldCount={fieldRecords.length}
+                />
+            )}
 
             {/* Column Mapper */}
             {systemColumns.length > 0 && (

@@ -55,7 +55,7 @@ export function getStoredUser(): AuthUser | null {
 
 // ─── Core fetch ───────────────────────────────────────────────────────────────
 
-async function request<TResponse>(
+export async function request<TResponse>(
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
     path: string,
     body?: unknown,
@@ -132,6 +132,38 @@ export interface RegisterRequest {
 export interface RegisterResponse {
     access_token: string;
     user: AuthUser;
+}
+
+export interface WebhookGenerateResponse {
+    api_key: string;
+    description: string;
+}
+
+// ---------------------------------------------------------
+// ERP Integration APIs
+// ---------------------------------------------------------
+
+export interface ErpIntegration {
+    id?: number;
+    user_id?: number;
+    name: string;
+    url: string;
+    method: 'GET' | 'POST' | string;
+    auth_header_key?: string;
+    auth_header_value?: string;
+    cron_schedule?: string;
+    last_sync_at?: string; // ISO datetime
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface ErpIntegrationRequest {
+    name: string;
+    url: string;
+    method: string;
+    auth_header_key?: string;
+    auth_header_value?: string;
+    cron_schedule?: string;
 }
 
 // Matches backend GeocodeRequest
@@ -386,7 +418,6 @@ export const integrationApi = {
         return request<{ data: Record<string, unknown>[] }>('POST', '/api/pipelines/preview', payload);
     },
     runPipeline(payload: TransformationPipeline): Promise<BatchValidationResponse> {
-        // Now returns a single object containing all validation results
         return request<BatchValidationResponse>('POST', '/api/pipelines/run', payload);
     },
     savePipeline(payload: TransformationPipeline): Promise<TransformationPipeline> {
@@ -395,7 +426,24 @@ export const integrationApi = {
     getPipelines(dataSourceId: number): Promise<TransformationPipeline[]> {
         return request<TransformationPipeline[]>('GET', `/api/datasources/${dataSourceId}/pipelines`);
     },
-    deletePipeline(id: number): Promise<{ message: string }> {
-        return request<{ message: string }>('DELETE', `/api/pipelines/${id}`);
+    deletePipeline(id: number): Promise<void> {
+        return request<void>('DELETE', `/api/pipelines/${id}`);
+    },
+
+    // --- ERP Integrations ---
+    listErpIntegrations: async (): Promise<ErpIntegration[]> => {
+        return request<ErpIntegration[]>('GET', '/api/erp-integrations');
+    },
+    createErpIntegration: async (data: ErpIntegrationRequest): Promise<ErpIntegration> => {
+        return request<ErpIntegration>('POST', '/api/erp-integrations', data);
+    },
+    updateErpIntegration: async (id: number, data: Partial<ErpIntegrationRequest>): Promise<ErpIntegration> => {
+        return request<ErpIntegration>('PUT', `/api/erp-integrations/${id}`, data);
+    },
+    deleteErpIntegration: async (id: number): Promise<void> => {
+        return request<void>('DELETE', `/api/erp-integrations/${id}`);
+    },
+    syncErpIntegration: async (id: number): Promise<void> => {
+        return request<void>('POST', `/api/erp-integrations/${id}/sync`);
     }
 };
