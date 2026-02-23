@@ -1,0 +1,25 @@
+version: "2"
+
+linters:
+  default: standard
+  settings:
+    errcheck:
+      # Ignore errors from http response writer — fail silently on client disconnect is OK
+      exclude-functions:
+        - (net/http.ResponseWriter).Write
+        - (*github.com/gin-gonic/gin.responseWriter).WriteString
+
+issues:
+  exclude-rules:
+    # c.Writer.Write errors are silent on client disconnect — not actionable
+    - linters: [errcheck]
+      text: "Error return value of `c.Writer.Write` is not checked"
+
+    # fmt.Sscanf in ETL parsing — validation done separately after call
+    - linters: [errcheck]
+      text: "Error return value of `fmt.Sscanf` is not checked"
+      path: "internal/service/etl_service.go"
+
+    # Scheduler AddOrUpdateJob / SaveSession — errors are logged inside implementation
+    - linters: [errcheck]
+      path: "internal/service/scheduler_service.go"
