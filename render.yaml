@@ -1,0 +1,34 @@
+services:
+  # Backend Go API Service
+  - type: web
+    name: geoaccuracy-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    branch: main
+    region: singapore
+    plan: free
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_PORT
+        value: 8081
+      - key: DB_HOST
+        value: db.odawdxitezoivptffnsy.supabase.co
+      - key: DB_PORT
+        value: 5432
+      - key: DB_USER
+        value: postgres
+      - key: DB_NAME
+        value: postgres
+      - key: DB_PASSWORD
+        sync: false # diisi manual di Render dashboard
+      - key: JWT_SECRET
+        sync: false # diisi manual di Render dashboard
+      - key: AES_ENCRYPTION_KEY
+        sync: false # diisi manual di Render dashboard
+      - key: ALLOWED_ORIGINS
+        value: https://geo-accuracy.vercel.app
+      - key: REDIS_URL
+        value: ""
+    healthCheckPath: /api/health
