@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"geoaccuracy-backend/config"
@@ -12,7 +13,8 @@ import (
 
 func ConnectPostgres(cfg *config.Config) (*sql.DB, error) {
 	sslMode := "disable"
-	if cfg.AppEnv == "production" {
+	// Supabase requires SSL regardless of environment
+	if cfg.AppEnv == "production" || strings.Contains(cfg.DBHost, "supabase.co") {
 		sslMode = "require"
 	}
 
