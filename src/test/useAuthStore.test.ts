@@ -11,8 +11,9 @@ const fakeUser: AuthUser = {
 };
 
 beforeEach(() => {
-    // Reset Zustand store to initial state and clear sessionStorage
-    sessionStorage.clear();
+    // Reset Zustand store to initial state and clear localStorage
+    // (api.ts persists token/user to localStorage, not sessionStorage)
+    localStorage.clear();
     useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
 });
 
@@ -34,7 +35,7 @@ describe('useAuthStore', () => {
         expect(result.current.isAuthenticated).toBe(true);
         expect(result.current.user).toEqual(fakeUser);
         expect(result.current.token).toBe('tok123');
-        expect(sessionStorage.getItem('geoaccuracy_token')).toBe('tok123');
+        expect(localStorage.getItem('geoaccuracy_token')).toBe('tok123');
     });
 
     it('logout() clears auth state and sessionStorage', () => {
@@ -50,12 +51,12 @@ describe('useAuthStore', () => {
         expect(result.current.isAuthenticated).toBe(false);
         expect(result.current.user).toBeNull();
         expect(result.current.token).toBeNull();
-        expect(sessionStorage.getItem('geoaccuracy_token')).toBeNull();
+        expect(localStorage.getItem('geoaccuracy_token')).toBeNull();
     });
 
     it('hydrate() restores session from sessionStorage', () => {
-        sessionStorage.setItem('geoaccuracy_token', 'restored-tok');
-        sessionStorage.setItem('geoaccuracy_user', JSON.stringify(fakeUser));
+        localStorage.setItem('geoaccuracy_token', 'restored-tok');
+        localStorage.setItem('geoaccuracy_user', JSON.stringify(fakeUser));
 
         const { result } = renderHook(() => useAuthStore());
 
@@ -80,8 +81,8 @@ describe('useAuthStore', () => {
     });
 
     it('hydrate() does nothing when sessionStorage user JSON is corrupt', () => {
-        sessionStorage.setItem('geoaccuracy_token', 'tok');
-        sessionStorage.setItem('geoaccuracy_user', '{corrupt json}');
+        localStorage.setItem('geoaccuracy_token', 'tok');
+        localStorage.setItem('geoaccuracy_user', '{corrupt json}');
 
         const { result } = renderHook(() => useAuthStore());
 

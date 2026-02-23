@@ -7,8 +7,8 @@ const mockFetch = vi.fn();
 
 beforeEach(() => {
     vi.stubGlobal('fetch', mockFetch);
-    // Reset sessionStorage before each test
-    sessionStorage.clear();
+    // api.ts uses localStorage (not sessionStorage) for token storage
+    localStorage.clear();
     mockFetch.mockReset();
 });
 
@@ -96,14 +96,15 @@ describe('authApi.register', () => {
 
 describe('comparisonApi.compareBatch', () => {
     it('should throw ApiError 401 if token is missing', async () => {
-        // No token in sessionStorage
+        // No token in localStorage
         await expect(
             comparisonApi.compareBatch({ records: [] }),
         ).rejects.toMatchObject({ status: 401, code: 'UNAUTHENTICATED' });
     });
 
     it('should inject Authorization header when token is present', async () => {
-        sessionStorage.setItem('geoaccuracy_token', 'valid-jwt');
+        // api.ts reads token from localStorage
+        localStorage.setItem('geoaccuracy_token', 'valid-jwt');
         mockFetch.mockResolvedValueOnce(
             mockResponse(200, { results: [], total: 0, processed: 0, errors: 0 }),
         );
@@ -119,7 +120,8 @@ describe('comparisonApi.compareBatch', () => {
 
 describe('geocodeApi.geocode', () => {
     it('should POST to /api/geocode when authenticated', async () => {
-        sessionStorage.setItem('geoaccuracy_token', 'valid-jwt');
+        // api.ts reads token from localStorage
+        localStorage.setItem('geoaccuracy_token', 'valid-jwt');
         mockFetch.mockResolvedValueOnce(
             mockResponse(200, { lat: -6.2, lng: 106.816, display_name: 'Jakarta', cached: false }),
         );
