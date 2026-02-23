@@ -33,7 +33,7 @@ func SetupRouter(
 
 	// Global middleware
 	r.Use(middleware.SecurityHeaders())
-	r.Use(middleware.CORSMiddleware())
+	r.Use(middleware.CORSMiddleware(cfg.AllowedOrigins))
 	r.Use(middleware.MetricsMiddleware()) // Apply Prometheus metrics tracking
 
 	// Health check (public)

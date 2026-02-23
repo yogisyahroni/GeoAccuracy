@@ -18,6 +18,9 @@ type Config struct {
 	RedisURL         string
 	JWTSecret        string
 	AESEncryptionKey string
+	// AllowedOrigins is a comma-separated list of allowed CORS origins.
+	// Example: "https://geoverify.vercel.app,http://localhost:8080"
+	AllowedOrigins string
 }
 
 func LoadConfig() *Config {
@@ -34,6 +37,8 @@ func LoadConfig() *Config {
 		RedisURL:         getEnv("REDIS_URL", "redis://localhost:6379"),
 		JWTSecret:        getEnv("JWT_SECRET", "super-secret-default-key-change-in-prod"),
 		AESEncryptionKey: getEnv("AES_ENCRYPTION_KEY", "0123456789abcdef0123456789abcdef"), // 32 bytes default for AES-256
+		// In development: allow Vite dev server. In production: set ALLOWED_ORIGINS env var.
+		AllowedOrigins: getEnv("ALLOWED_ORIGINS", "http://localhost:8080,http://localhost:5173"),
 	}
 
 	if cfg.AppEnv == "production" {
@@ -42,6 +47,9 @@ func LoadConfig() *Config {
 		}
 		if os.Getenv("DB_PASSWORD") == "" {
 			log.Fatal("DB_PASSWORD must be set in production")
+		}
+		if os.Getenv("ALLOWED_ORIGINS") == "" {
+			log.Fatal("ALLOWED_ORIGINS must be set in production (e.g. https://yourapp.vercel.app)")
 		}
 	}
 
