@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { Database, Plus, Trash2, TestTube, CheckCircle, XCircle, ChevronDown, ChevronUp, Server, Eye, EyeOff } from 'lucide-react';
+import { Database, Plus, Trash2, TestTube, CheckCircle, XCircle, ChevronDown, ChevronUp, Eye, EyeOff, HelpCircle } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export type DbType = 'postgresql' | 'mysql' | 'mongodb' | 'mssql' | 'oracle' | 'sqlite';
 
@@ -44,6 +50,29 @@ const emptyConn = (): DbConnection => ({
   sslEnabled: false,
 });
 
+// Komponen tooltip kecil dengan ikon "?"
+function Info({ text, example }: { text: string; example?: string }) {
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex items-center ml-1 cursor-help text-muted-foreground hover:text-primary transition-colors" tabIndex={0}>
+            <HelpCircle className="w-3 h-3" />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs text-left p-3 space-y-1 z-[100]">
+          <p className="text-xs leading-snug">{text}</p>
+          {example && (
+            <p className="font-mono text-[10px] bg-muted/70 text-primary rounded px-2 py-1 mt-1 whitespace-pre-line">
+              {example}
+            </p>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 export function DatabaseConnector({ onConnectionSelect }: DatabaseConnectorProps) {
   const [expanded, setExpanded] = useState(false);
   const [connections, setConnections] = useState<DbConnection[]>([]);
@@ -71,12 +100,37 @@ export function DatabaseConnector({ onConnectionSelect }: DatabaseConnectorProps
   };
 
   const testConnection = async (id: string) => {
+    const conn = connections.find(c => c.id === id);
+    if (!conn) return;
+
     updateConn(id, { status: 'testing' });
-    // Simulate test (real test requires backend/edge function)
-    await new Promise(r => setTimeout(r, 1800));
-    // Since no real backend yet, show info message
-    updateConn(id, { status: 'idle' });
-    alert('ℹ️ Test koneksi membutuhkan backend Golang/API.\nLihat BACKEND_GUIDE.md untuk panduan implementasi endpoint /api/db/test');
+    try {
+      const token = localStorage.getItem('geoaccuracy_token');
+      const res = await fetch('/api/datasources/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          db_type: conn.type,
+          host: conn.host,
+          port: conn.port,
+          database: conn.database,
+          username: conn.username,
+          password: conn.password,
+          ssl_enabled: conn.sslEnabled,
+        }),
+      });
+
+      if (res.ok) {
+        updateConn(id, { status: 'connected' });
+      } else {
+        updateConn(id, { status: 'failed' });
+      }
+    } catch {
+      updateConn(id, { status: 'failed' });
+    }
   };
 
   const selectConnection = (conn: DbConnection) => {
@@ -98,8 +152,12 @@ export function DatabaseConnector({ onConnectionSelect }: DatabaseConnectorProps
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Database className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />
-            <h2 className="text-sm font-semibold" style={{ color: 'hsl(var(--foreground))' }}>
+            <h2 className="text-sm font-semibold flex items-center" style={{ color: 'hsl(var(--foreground))' }}>
               Koneksi Database
+              <Info
+                text="Sambungkan database eksternal (PostgreSQL, MySQL, dsb.) sebagai sumber data pipeline. Koneksi ini digunakan untuk ETL — mengambil data alamat dari tabel Anda lalu menjalankan proses geokode."
+                example="Contoh: Database ERP di server produksi yang berisi tabel orders dengan kolom alamat."
+              />
             </h2>
             <span className="text-xs px-2 py-0.5 rounded-full font-mono"
               style={{ background: 'hsl(var(--surface-3))', color: 'hsl(var(--muted-foreground))' }}>
@@ -119,12 +177,6 @@ export function DatabaseConnector({ onConnectionSelect }: DatabaseConnectorProps
               {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
           </div>
-        </div>
-
-        {/* Note */}
-        <div className="mt-3 p-3 rounded-lg text-xs" style={{ background: 'hsl(38 92% 55% / 0.08)', border: '1px solid hsl(38 92% 55% / 0.2)', color: 'hsl(38 92% 55%)' }}>
-          <Server className="w-3.5 h-3.5 inline mr-1.5 mb-0.5" />
-          Konfigurasi ini disimpan di sisi klien (browser). Untuk eksekusi query nyata ke database diperlukan <strong>Backend API (Golang)</strong>. Lihat <code className="font-mono">BACKEND_GUIDE.md</code> untuk panduan setup.
         </div>
       </div>
 
@@ -170,6 +222,7 @@ export function DatabaseConnector({ onConnectionSelect }: DatabaseConnectorProps
                   <div className="flex items-center gap-2">
                     {conn.status === 'connected' && <CheckCircle className="w-4 h-4" style={{ color: 'hsl(142 70% 55%)' }} />}
                     {conn.status === 'failed' && <XCircle className="w-4 h-4" style={{ color: 'hsl(0 72% 60%)' }} />}
+                    {conn.status === 'testing' && <span className="text-xs animate-pulse" style={{ color: 'hsl(var(--primary))' }}>Menguji...</span>}
                   </div>
                   {/* Actions */}
                   <div className="flex items-center gap-1.5">
@@ -180,12 +233,14 @@ export function DatabaseConnector({ onConnectionSelect }: DatabaseConnectorProps
                     </button>
                     <button onClick={() => testConnection(conn.id)}
                       disabled={conn.status === 'testing'}
+                      title="Uji koneksi ke database menggunakan kredensial yang diisi"
                       className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border transition-colors disabled:opacity-50"
                       style={{ color: 'hsl(215 100% 60%)', borderColor: 'hsl(215 100% 60% / 0.3)' }}>
                       <TestTube className="w-3 h-3" />
-                      {conn.status === 'testing' ? 'Testing...' : 'Test'}
+                      {conn.status === 'testing' ? 'Menguji...' : 'Test'}
                     </button>
                     <button onClick={() => selectConnection(conn)}
+                      title="Pilih koneksi ini sebagai sumber data untuk pipeline"
                       className="text-xs px-2.5 py-1 rounded-lg transition-all"
                       style={{
                         background: activeId === conn.id ? 'hsl(var(--primary))' : 'hsl(var(--primary) / 0.1)',
@@ -194,6 +249,7 @@ export function DatabaseConnector({ onConnectionSelect }: DatabaseConnectorProps
                       {activeId === conn.id ? '✓ Aktif' : 'Gunakan'}
                     </button>
                     <button onClick={() => deleteConn(conn.id)}
+                      title="Hapus koneksi ini"
                       className="p-1.5 rounded-lg transition-colors"
                       style={{ color: 'hsl(0 72% 60%)' }}>
                       <Trash2 className="w-3.5 h-3.5" />
@@ -206,7 +262,10 @@ export function DatabaseConnector({ onConnectionSelect }: DatabaseConnectorProps
                   <div className="px-4 pb-4 border-t border-border pt-4 grid grid-cols-2 md:grid-cols-3 gap-3 animate-fade-in">
                     {/* DB Type */}
                     <div className="col-span-2 md:col-span-3">
-                      <label className="text-xs font-medium mb-1 block" style={{ color: 'hsl(var(--muted-foreground))' }}>Tipe Database</label>
+                      <label className="text-xs font-medium mb-1 flex items-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                        Tipe Database
+                        <Info text="Pilih jenis database yang ingin disambungkan. Port akan terisi otomatis sesuai standar masing-masing database." example="PostgreSQL = 5432 | MySQL = 3306 | MongoDB = 27017" />
+                      </label>
                       <div className="flex flex-wrap gap-2">
                         {DB_TYPES.map(db => (
                           <button key={db.value} onClick={() => handleTypeChange(conn.id, db.value)}
@@ -224,8 +283,14 @@ export function DatabaseConnector({ onConnectionSelect }: DatabaseConnectorProps
 
                     {/* Host */}
                     <div>
-                      <label className="text-xs font-medium mb-1 block" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                        {conn.type === 'sqlite' ? 'File Path' : 'Host'}
+                      <label className="text-xs font-medium mb-1 flex items-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                        {conn.type === 'sqlite' ? 'File Path' : 'Host / IP Server'}
+                        <Info
+                          text={conn.type === 'sqlite'
+                            ? "Masukkan jalur lengkap ke file SQLite di server backend."
+                            : "Alamat IP atau nama host server database. Gunakan 'localhost' jika database ada di server yang sama dengan backend."}
+                          example={conn.type === 'sqlite' ? "/var/data/db.sqlite" : "localhost  atau  192.168.1.10  atau  db.perusahaan.com"}
+                        />
                       </label>
                       <input value={conn.host} onChange={e => updateConn(conn.id, { host: e.target.value })}
                         placeholder={conn.type === 'sqlite' ? '/path/to/db.sqlite' : 'localhost'}
@@ -236,7 +301,10 @@ export function DatabaseConnector({ onConnectionSelect }: DatabaseConnectorProps
                     {/* Port */}
                     {conn.type !== 'sqlite' && (
                       <div>
-                        <label className="text-xs font-medium mb-1 block" style={{ color: 'hsl(var(--muted-foreground))' }}>Port</label>
+                        <label className="text-xs font-medium mb-1 flex items-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                          Port
+                          <Info text="Nomor port tempat database berjalan. Biasanya tidak perlu diubah kecuali database dikonfigurasi dengan port non-standar." example="PostgreSQL=5432 | MySQL=3306 | MongoDB=27017 | MSSQL=1433" />
+                        </label>
                         <input value={conn.port} onChange={e => updateConn(conn.id, { port: e.target.value })}
                           className="w-full px-3 py-1.5 text-xs rounded-lg border bg-transparent outline-none"
                           style={{ color: 'hsl(var(--foreground))', borderColor: 'hsl(var(--border))' }} />
@@ -246,8 +314,9 @@ export function DatabaseConnector({ onConnectionSelect }: DatabaseConnectorProps
                     {/* Database Name */}
                     {conn.type !== 'sqlite' && (
                       <div>
-                        <label className="text-xs font-medium mb-1 block" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                          {conn.type === 'mongodb' ? 'Database Name' : 'Database / Schema'}
+                        <label className="text-xs font-medium mb-1 flex items-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                          {conn.type === 'mongodb' ? 'Nama Database' : 'Database / Schema'}
+                          <Info text="Nama database atau schema yang akan diakses. Pastikan user memiliki hak akses READ minimal ke database ini." example="geodata  atau  db_logistik  atau  warehouse_prod" />
                         </label>
                         <input value={conn.database} onChange={e => updateConn(conn.id, { database: e.target.value })}
                           placeholder="nama_database"
@@ -259,7 +328,10 @@ export function DatabaseConnector({ onConnectionSelect }: DatabaseConnectorProps
                     {/* Username */}
                     {conn.type !== 'sqlite' && (
                       <div>
-                        <label className="text-xs font-medium mb-1 block" style={{ color: 'hsl(var(--muted-foreground))' }}>Username</label>
+                        <label className="text-xs font-medium mb-1 flex items-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                          Username
+                          <Info text="Username akun database yang memiliki hak READ ke tabel yang dibutuhkan. Disarankan membuat user khusus dengan hak akses terbatas (READ ONLY) untuk keamanan." example="db_readonly_user  atau  etl_service" />
+                        </label>
                         <input value={conn.username} onChange={e => updateConn(conn.id, { username: e.target.value })}
                           placeholder="username"
                           className="w-full px-3 py-1.5 text-xs rounded-lg border bg-transparent outline-none"
@@ -270,7 +342,10 @@ export function DatabaseConnector({ onConnectionSelect }: DatabaseConnectorProps
                     {/* Password */}
                     {conn.type !== 'sqlite' && (
                       <div>
-                        <label className="text-xs font-medium mb-1 block" style={{ color: 'hsl(var(--muted-foreground))' }}>Password</label>
+                        <label className="text-xs font-medium mb-1 flex items-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                          Password
+                          <Info text="Password akun database. Disimpan terenkripsi di session browser dan tidak pernah dikirim ke server pihak ketiga. Gunakan tombol 'Test' untuk memverifikasi kredensial." />
+                        </label>
                         <div className="relative">
                           <input
                             type={showPassword[conn.id] ? 'text' : 'password'}
@@ -295,15 +370,19 @@ export function DatabaseConnector({ onConnectionSelect }: DatabaseConnectorProps
                         <input type="checkbox" id={`ssl-${conn.id}`} checked={conn.sslEnabled}
                           onChange={e => updateConn(conn.id, { sslEnabled: e.target.checked })}
                           className="rounded" />
-                        <label htmlFor={`ssl-${conn.id}`} className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                          Enable SSL/TLS
+                        <label htmlFor={`ssl-${conn.id}`} className="text-xs flex items-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                          Aktifkan SSL/TLS
+                          <Info text="Enkripsi koneksi ke database menggunakan SSL/TLS. Wajib diaktifkan untuk database di cloud (AWS RDS, Cloud SQL, Azure DB) atau jaringan yang tidak aman." example="Aktifkan untuk: Database production, cloud database\nNonaktifkan untuk: Database lokal development" />
                         </label>
                       </div>
                     )}
 
                     {/* Connection String Preview */}
                     <div className="col-span-2 md:col-span-3">
-                      <label className="text-xs font-medium mb-1 block" style={{ color: 'hsl(var(--muted-foreground))' }}>Connection String (preview)</label>
+                      <label className="text-xs font-medium mb-1 flex items-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                        String Koneksi (preview)
+                        <Info text="Pratinjau string koneksi yang akan digunakan backend untuk terhubung ke database. Password disembunyikan (***) untuk keamanan. String ini otomatis dibentuk dari isian di atas." />
+                      </label>
                       <code className="block text-xs px-3 py-2 rounded-lg font-mono break-all"
                         style={{ background: 'hsl(var(--surface-3))', color: 'hsl(var(--primary))' }}>
                         {conn.type === 'postgresql' && `postgresql://${conn.username}:***@${conn.host}:${conn.port}/${conn.database}${conn.sslEnabled ? '?sslmode=require' : ''}`}
