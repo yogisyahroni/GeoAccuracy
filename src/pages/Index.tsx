@@ -91,24 +91,6 @@ const Index = () => {
     setMappingSource('field');
   }, []);
 
-  // ── Address builder (with optional column mapping) ─────────────────────────
-
-  const buildAddress = (
-    rawRow: Record<string, string>,
-    sys: SystemRecord,
-  ): string => {
-    if (columnMappings.length > 0) {
-      const m = columnMappings[0];
-      const parts = [
-        m.col1 ? rawRow[m.col1] : '',
-        m.col2 ? rawRow[m.col2] : '',
-        m.col3 ? rawRow[m.col3] : '',
-      ].filter((p) => p && p.trim());
-      return parts.join(m.separator);
-    }
-    return `${sys.address}, ${sys.city}, ${sys.province}`;
-  };
-
   // ── Process — calls Go backend /api/compare ────────────────────────────────
 
   const handleProcess = async () => {
@@ -123,13 +105,14 @@ const Index = () => {
     setProcessLog('Mengirim data ke backend...');
 
     // Build field map for O(1) lookup using mapped columns
-    const fieldMap = new Map<string, { lat: number, lng: number }>();
+    const fieldMap = new Map<string, { lat: number, lng: number, rawRow: Record<string, string> }>();
     fieldRawData.forEach((row) => {
       const id = (row[fieldMapping.id] || '').toUpperCase().trim();
       if (id) {
         fieldMap.set(id, {
           lat: parseFloat(row[fieldMapping.lat] || '0'),
-          lng: parseFloat(row[fieldMapping.lng] || '0')
+          lng: parseFloat(row[fieldMapping.lng] || '0'),
+          rawRow: row
         });
       }
     });
@@ -141,15 +124,30 @@ const Index = () => {
       if (connote) rawDataMap.set(connote, row);
     });
 
+    const getGeocodeAddress = (sysRawRow: Record<string, string>, fieldRawRow: Record<string, string> | null, sys: SystemRecord) => {
+      if (columnMappings.length > 0) {
+        const m = columnMappings[0];
+        const rowData = m.source === 'system' ? sysRawRow : (fieldRawRow || {});
+        const parts = [
+          m.col1 ? rowData[m.col1] : '',
+          m.col2 ? rowData[m.col2] : '',
+          m.col3 ? rowData[m.col3] : '',
+        ].filter((p) => p && p.trim());
+        return parts.join(m.separator);
+      }
+      return `${sys.address}, ${sys.city}, ${sys.province}`;
+    };
+
     // Build payload — only include records that have a field counterpart
     const items = systemRecords
       .map((sys) => {
-        const rawRow = rawDataMap.get(sys.connote) ?? {};
+        const sysRawRow = rawDataMap.get(sys.connote) ?? {};
         const fieldData = fieldMap.get(sys.connote);
         if (!fieldData) return null;
+
         return {
           id: sys.connote,
-          system_address: buildAddress(rawRow, sys),
+          system_address: getGeocodeAddress(sysRawRow, fieldData.rawRow, sys),
           field_lat: fieldData.lat,
           field_lng: fieldData.lng,
         };
@@ -162,7 +160,7 @@ const Index = () => {
       .map((sys) => ({
         connote: sys.connote,
         recipientName: sys.recipientName,
-        systemAddress: buildAddress(rawDataMap.get(sys.connote) ?? {}, sys),
+        systemAddress: getGeocodeAddress(rawDataMap.get(sys.connote) ?? {}, null, sys),
         category: 'error' as const,
         geocodeStatus: 'error' as const,
       }));
@@ -409,15 +407,17 @@ const Index = () => {
             <div className="flex-1 flex flex-col">
               {/* Mapping Sistem */}
               <div className={mappingSource === 'system' ? 'block' : 'hidden'}>
-                {systemColumns.length > 0 ? (
+                {systemColumns.length > 0 || fieldColumns.length > 0 ? (
                   <AddressColumnMapper
-                    availableColumns={systemColumns}
+                    systemColumns={systemColumns}
+                    fieldColumns={fieldColumns}
                     onMappingChange={setColumnMappings}
-                    sampleRows={systemRawData.slice(0, 5)}
+                    systemSampleRows={systemRawData.slice(0, 5)}
+                    fieldSampleRows={fieldRawData.slice(0, 5)}
                   />
                 ) : (
                   <div className="p-8 text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                    <p className="text-sm">Silakan upload Data Sistem terlebih dahulu.</p>
+                    <p className="text-sm">Silakan upload data terlebih dahulu untuk melakukan pemetaan kolom.</p>
                   </div>
                 )}
               </div>
