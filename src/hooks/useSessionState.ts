@@ -3,10 +3,10 @@ import { useState, useCallback } from 'react';
 export function useSessionState<T>(key: string, initialValue: T): [T, (val: T | ((prev: T) => T)) => void] {
     const [state, setState] = useState<T>(() => {
         try {
-            const saved = sessionStorage.getItem(key);
+            const saved = localStorage.getItem(key);
             if (saved) return JSON.parse(saved);
         } catch (e) {
-            console.error('Failed to parse sessionStorage', e);
+            console.error('Failed to parse localStorage', e);
         }
         return initialValue;
     });
@@ -15,9 +15,10 @@ export function useSessionState<T>(key: string, initialValue: T): [T, (val: T | 
         setState(prev => {
             const nextVal = typeof val === 'function' ? (val as any)(prev) : val;
             try {
-                sessionStorage.setItem(key, JSON.stringify(nextVal));
+                localStorage.setItem(key, JSON.stringify(nextVal));
+
             } catch (e) {
-                console.error('Failed to save to sessionStorage', e);
+                console.error('Failed to save to localStorage', e);
             }
             return nextVal;
         });
