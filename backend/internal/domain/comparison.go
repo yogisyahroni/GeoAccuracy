@@ -2,9 +2,9 @@ package domain
 
 type ValidationRequestItem struct {
 	ID            string  `json:"id"`
-	SystemAddress string  `json:"system_address" binding:"required"`
-	FieldLat      float64 `json:"field_lat" binding:"required"`
-	FieldLng      float64 `json:"field_lng" binding:"required"`
+	SystemAddress string  `json:"system_address"`
+	FieldLat      float64 `json:"field_lat"`
+	FieldLng      float64 `json:"field_lng"`
 }
 
 type BatchValidationRequest struct {
