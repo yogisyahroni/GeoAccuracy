@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Truck, Activity, RefreshCw, Info, LogOut, User, AlertCircle } from 'lucide-react';
+import { Truck, Activity, RefreshCw, Info, LogOut, User, AlertCircle, Columns } from 'lucide-react';
 import { StatsCards } from '@/components/StatsCards';
 import { DataUpload } from '@/components/DataUpload';
 import { ComparisonTable } from '@/components/ComparisonTable';
@@ -33,6 +33,8 @@ const Index = () => {
   const [fieldColumns, setFieldColumns] = useState<string[]>([]);
   const [fieldMapping, setFieldMapping] = useState<{ id: string; lat: string; lng: string }>({ id: '', lat: '', lng: '' });
 
+  const [mappingSource, setMappingSource] = useState<'system' | 'field'>('system');
+
   // ── Derived stats ──────────────────────────────────────────────────────────
 
   const stats: DashboardStats = {
@@ -50,6 +52,9 @@ const Index = () => {
     if (data.length > 0) {
       setSystemColumns(Object.keys(data[0]));
       setSystemRawData(data);
+    } else {
+      setSystemColumns([]);
+      setSystemRawData([]);
     }
     const mapped: SystemRecord[] = data
       .filter((row) => row.connote || row.Connote || row.CONNOTE)
@@ -64,6 +69,7 @@ const Index = () => {
     setSystemRecords(mapped);
     setResults([]);
     setProcessError(null);
+    setMappingSource('system');
   }, []);
 
   const handleFieldDataLoad = useCallback((data: Record<string, string>[]) => {
@@ -72,13 +78,17 @@ const Index = () => {
       setFieldRawData(data);
       // Auto-detect common column names
       const cols = Object.keys(data[0]);
-      const idCol = cols.find(c => /connote|id|resi/i.test(c)) || cols[0] || '';
+      const idCol = cols.find(c => /connote|id|resi|no/i.test(c)) || cols[0] || '';
       const latCol = cols.find(c => /lat|latitude|y/i.test(c)) || '';
       const lngCol = cols.find(c => /lng|lon|longitude|x/i.test(c)) || '';
       setFieldMapping({ id: idCol, lat: latCol, lng: lngCol });
+    } else {
+      setFieldColumns([]);
+      setFieldRawData([]);
     }
     setResults([]);
     setProcessError(null);
+    setMappingSource('field');
   }, []);
 
   // ── Address builder (with optional column mapping) ─────────────────────────
@@ -355,58 +365,121 @@ const Index = () => {
           fieldCount={fieldRawData.length}
         />
 
-        {/* ── Address Column Mapper (Sistem) ─────────────────────────────────── */}
-        {systemColumns.length > 0 && (
-          <AddressColumnMapper
-            availableColumns={systemColumns}
-            onMappingChange={setColumnMappings}
-            sampleRows={systemRawData.slice(0, 5)}
-          />
-        )}
+        {/* ── Unified Data Mapping ──────────────────────────────────────────── */}
+        {(systemColumns.length > 0 || fieldColumns.length > 0) && (
+          <div className="section-card flex flex-col">
+            {/* Header Tabs */}
+            <div className="p-4 border-b border-border flex flex-wrap items-center justify-between gap-4" style={{ background: 'hsl(var(--surface-2))' }}>
+              <div className="flex items-center gap-2.5">
+                <Columns className="w-4.5 h-4.5" style={{ color: 'hsl(var(--primary))' }} />
+                <div>
+                  <h2 className="text-sm font-semibold" style={{ color: 'hsl(var(--foreground))' }}>
+                    Konfigurasi Mapping
+                  </h2>
+                  <p className="text-[11px] mt-0.5" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                    Petakan kolom untuk memproses data.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <label className="text-xs font-medium" style={{ color: 'hsl(var(--muted-foreground))' }}>Pilih Data:</label>
+                <div className="relative">
+                  <select
+                    value={mappingSource}
+                    onChange={(e) => setMappingSource(e.target.value as 'system' | 'field')}
+                    className="appearance-none text-sm px-4 py-2 pr-8 rounded-lg outline-none transition-all cursor-pointer font-medium"
+                    style={{
+                      background: 'hsl(var(--surface-1))',
+                      border: '1px solid hsl(var(--primary) / 0.5)',
+                      color: 'hsl(var(--primary))',
+                      boxShadow: '0 2px 10px hsl(var(--primary) / 0.1)',
+                    }}
+                  >
+                    <option value="system" disabled={systemColumns.length === 0}>Data Sistem (Alamat)</option>
+                    <option value="field" disabled={fieldColumns.length === 0}>Data Lapangan (Koordinat)</option>
+                  </select>
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'hsl(var(--primary))' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-        {/* ── Field Column Mapper (Lapangan) ─────────────────────────────────── */}
-        {fieldColumns.length > 0 && (
-          <div className="section-card p-5" style={{ background: 'hsl(var(--surface-3) / 0.5)' }}>
-            <h3 className="text-sm font-semibold mb-3">Mapping Kolom Data Lapangan</h3>
-            <p className="text-xs mb-4" style={{ color: 'hsl(var(--muted-foreground))' }}>
-              Pilih kolom ID (Connote), Latitude, dan Longitude dari Data Lapangan agar dapat diproses.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-xs font-semibold mb-1 block" style={{ color: 'hsl(var(--foreground))' }}>ID (Connote)</label>
-                <select
-                  className="w-full border rounded-lg text-sm px-3 py-2"
-                  style={{ background: 'hsl(var(--surface-1))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }}
-                  value={fieldMapping.id}
-                  onChange={e => setFieldMapping(m => ({ ...m, id: e.target.value }))}
-                >
-                  <option value="">Pilih kolom...</option>
-                  {fieldColumns.map(c => <option key={`id-${c}`} value={c}>{c}</option>)}
-                </select>
+            {/* Content Body */}
+            <div className="flex-1 flex flex-col">
+              {/* Mapping Sistem */}
+              <div className={mappingSource === 'system' ? 'block' : 'hidden'}>
+                {systemColumns.length > 0 ? (
+                  <AddressColumnMapper
+                    availableColumns={systemColumns}
+                    onMappingChange={setColumnMappings}
+                    sampleRows={systemRawData.slice(0, 5)}
+                  />
+                ) : (
+                  <div className="p-8 text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                    <p className="text-sm">Silakan upload Data Sistem terlebih dahulu.</p>
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="text-xs font-semibold mb-1 block" style={{ color: 'hsl(var(--foreground))' }}>Latitude</label>
-                <select
-                  className="w-full border rounded-lg text-sm px-3 py-2"
-                  style={{ background: 'hsl(var(--surface-1))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }}
-                  value={fieldMapping.lat}
-                  onChange={e => setFieldMapping(m => ({ ...m, lat: e.target.value }))}
-                >
-                  <option value="">Pilih kolom...</option>
-                  {fieldColumns.map(c => <option key={`lat-${c}`} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold mb-1 block" style={{ color: 'hsl(var(--foreground))' }}>Longitude</label>
-                <select
-                  className="w-full border rounded-lg text-sm px-3 py-2"
-                  style={{ background: 'hsl(var(--surface-1))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }}
-                  value={fieldMapping.lng}
-                  onChange={e => setFieldMapping(m => ({ ...m, lng: e.target.value }))}
-                >
-                  <option value="">Pilih kolom...</option>
-                  {fieldColumns.map(c => <option key={`lng-${c}`} value={c}>{c}</option>)}
-                </select>
+
+              {/* Mapping Lapangan */}
+              <div className={mappingSource === 'field' ? 'block' : 'hidden'}>
+                {fieldColumns.length > 0 ? (
+                  <>
+                    <div className="p-5 border-b border-border">
+                      <h2 className="text-sm font-semibold" style={{ color: 'hsl(var(--foreground))' }}>
+                        Mapping Kolom Lapangan
+                      </h2>
+                      <p className="text-xs mt-1" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                        Pilih kolom yang berisi ID (Connote) serta Latitude & Longitude dari Data Lapangan agar dapat dibandingkan.
+                      </p>
+                    </div>
+                    <div className="p-5">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                          <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'hsl(var(--foreground))' }}>1. Kolom ID (Connote / Resi)</label>
+                          <select
+                            className="w-full border rounded-lg text-sm px-3 py-2 cursor-pointer transition-colors hover:brightness-110"
+                            style={{ background: 'hsl(var(--surface-2))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }}
+                            value={fieldMapping.id}
+                            onChange={e => setFieldMapping(m => ({ ...m, id: e.target.value }))}
+                          >
+                            <option value="">-- Pilih kolom --</option>
+                            {fieldColumns.map(c => <option key={`id-${c}`} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'hsl(var(--foreground))' }}>2. Kolom Latitude</label>
+                          <select
+                            className="w-full border rounded-lg text-sm px-3 py-2 cursor-pointer transition-colors hover:brightness-110"
+                            style={{ background: 'hsl(var(--surface-2))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }}
+                            value={fieldMapping.lat}
+                            onChange={e => setFieldMapping(m => ({ ...m, lat: e.target.value }))}
+                          >
+                            <option value="">-- Pilih kolom --</option>
+                            {fieldColumns.map(c => <option key={`lat-${c}`} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold mb-1.5 block" style={{ color: 'hsl(var(--foreground))' }}>3. Kolom Longitude</label>
+                          <select
+                            className="w-full border rounded-lg text-sm px-3 py-2 cursor-pointer transition-colors hover:brightness-110"
+                            style={{ background: 'hsl(var(--surface-2))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }}
+                            value={fieldMapping.lng}
+                            onChange={e => setFieldMapping(m => ({ ...m, lng: e.target.value }))}
+                          >
+                            <option value="">-- Pilih kolom --</option>
+                            {fieldColumns.map(c => <option key={`lng-${c}`} value={c}>{c}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-8 text-center" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                    <p className="text-sm">Silakan upload Data Lapangan terlebih dahulu.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
