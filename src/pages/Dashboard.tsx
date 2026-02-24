@@ -11,6 +11,7 @@ import { AddressColumnMapper, ColumnMapping } from '@/components/AddressColumnMa
 import { ComparisonResult, DashboardStats, SystemRecord, FieldRecord } from '@/types/logistics';
 import { comparisonApi, ApiError } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useSessionState } from '@/hooks/useSessionState';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -18,17 +19,17 @@ const Dashboard = () => {
     const user = useAuthStore(s => s.user);
     const isObserver = user?.role === 'observer';
 
-    const [systemRecords, setSystemRecords] = useState<SystemRecord[]>([]);
-    const [fieldRecords, setFieldRecords] = useState<FieldRecord[]>([]);
-    const [results, setResults] = useState<ComparisonResult[]>([]);
+    const [systemRecords, setSystemRecords] = useSessionState<SystemRecord[]>('dash_sysRecs', []);
+    const [fieldRecords, setFieldRecords] = useSessionState<FieldRecord[]>('dash_fldRecs', []);
+    const [results, setResults] = useSessionState<ComparisonResult[]>('dash_results', []);
     const [isProcessing, setIsProcessing] = useState(false);
     const [processLog, setProcessLog] = useState('');
     const [processError, setProcessError] = useState<string | null>(null);
-    const [systemRawData, setSystemRawData] = useState<Record<string, string>[]>([]);
-    const [systemColumns, setSystemColumns] = useState<string[]>([]);
-    const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([]);
-    const [fieldRawData, setFieldRawData] = useState<Record<string, string>[]>([]);
-    const [fieldColumns, setFieldColumns] = useState<string[]>([]);
+    const [systemRawData, setSystemRawData] = useSessionState<Record<string, string>[]>('dash_sysRaw', []);
+    const [systemColumns, setSystemColumns] = useSessionState<string[]>('dash_sysCols', []);
+    const [columnMappings, setColumnMappings] = useSessionState<ColumnMapping[]>('dash_colMaps', []);
+    const [fieldRawData, setFieldRawData] = useSessionState<Record<string, string>[]>('dash_fldRaw', []);
+    const [fieldColumns, setFieldColumns] = useSessionState<string[]>('dash_fldCols', []);
 
     const stats: DashboardStats = {
         total: results.length,
