@@ -31,8 +31,8 @@ const DEFAULT_SEPARATORS = [
 const generateId = () => Math.random().toString(36).slice(2, 9);
 
 export function AddressColumnMapper({
-  systemColumns,
-  fieldColumns,
+  systemColumns = [],
+  fieldColumns = [],
   systemSampleRows = [],
   fieldSampleRows = [],
   onMappingChange
