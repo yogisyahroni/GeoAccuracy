@@ -16,18 +16,22 @@ import { useAuthStore } from '@/store/useAuthStore';
 
 const Index = () => {
   const navigate = useNavigate();
-  const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
-
   const [systemRecords, setSystemRecords] = useState<SystemRecord[]>([]);
-  const [fieldRecords, setFieldRecords] = useState<FieldRecord[]>([]);
   const [results, setResults] = useState<ComparisonResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processLog, setProcessLog] = useState('');
   const [processError, setProcessError] = useState<string | null>(null);
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+
   const [systemRawData, setSystemRawData] = useState<Record<string, string>[]>([]);
   const [systemColumns, setSystemColumns] = useState<string[]>([]);
   const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([]);
+
+  // New field mapping states
+  const [fieldRawData, setFieldRawData] = useState<Record<string, string>[]>([]);
+  const [fieldColumns, setFieldColumns] = useState<string[]>([]);
+  const [fieldMapping, setFieldMapping] = useState<{ id: string; lat: string; lng: string }>({ id: '', lat: '', lng: '' });
 
   // ── Derived stats ──────────────────────────────────────────────────────────
 
@@ -63,21 +67,16 @@ const Index = () => {
   }, []);
 
   const handleFieldDataLoad = useCallback((data: Record<string, string>[]) => {
-    const mapped: FieldRecord[] = data
-      .filter(
-        (row) =>
-          (row.connote || row.Connote || row.CONNOTE) &&
-          (row.lat || row.Lat) &&
-          (row.lng || row.Lng || row.lon || row.Lon),
-      )
-      .map((row) => ({
-        connote: (row.connote || row.Connote || row.CONNOTE || '').toUpperCase().trim(),
-        lat: parseFloat(row.lat || row.Lat || row.latitude || '0'),
-        lng: parseFloat(row.lng || row.Lng || row.lon || row.Lon || row.longitude || '0'),
-        reportedBy: row.reported_by || row.tim || row.reporter || '',
-        reportDate: row.report_date || row.tanggal || row.date || '',
-      }));
-    setFieldRecords(mapped);
+    if (data.length > 0) {
+      setFieldColumns(Object.keys(data[0]));
+      setFieldRawData(data);
+      // Auto-detect common column names
+      const cols = Object.keys(data[0]);
+      const idCol = cols.find(c => /connote|id|resi/i.test(c)) || cols[0] || '';
+      const latCol = cols.find(c => /lat|latitude|y/i.test(c)) || '';
+      const lngCol = cols.find(c => /lng|lon|longitude|x/i.test(c)) || '';
+      setFieldMapping({ id: idCol, lat: latCol, lng: lngCol });
+    }
     setResults([]);
     setProcessError(null);
   }, []);
@@ -103,15 +102,27 @@ const Index = () => {
   // ── Process — calls Go backend /api/compare ────────────────────────────────
 
   const handleProcess = async () => {
-    if (systemRecords.length === 0 || fieldRecords.length === 0) return;
+    if (systemRecords.length === 0 || fieldRawData.length === 0) return;
+    if (!fieldMapping.id || !fieldMapping.lat || !fieldMapping.lng) {
+      toast.error('Silakan petakan kolom ID, Latitude, dan Longitude untuk Data Lapangan terlebih dahulu.');
+      return;
+    }
 
     setIsProcessing(true);
     setProcessError(null);
     setProcessLog('Mengirim data ke backend...');
 
-    // Build field map for O(1) lookup
-    const fieldMap = new Map<string, FieldRecord>();
-    fieldRecords.forEach((f) => fieldMap.set(f.connote, f));
+    // Build field map for O(1) lookup using mapped columns
+    const fieldMap = new Map<string, { lat: number, lng: number }>();
+    fieldRawData.forEach((row) => {
+      const id = (row[fieldMapping.id] || '').toUpperCase().trim();
+      if (id) {
+        fieldMap.set(id, {
+          lat: parseFloat(row[fieldMapping.lat] || '0'),
+          lng: parseFloat(row[fieldMapping.lng] || '0')
+        });
+      }
+    });
 
     // Build raw data map for column-mapping support
     const rawDataMap = new Map<string, Record<string, string>>();
@@ -205,13 +216,15 @@ const Index = () => {
 
   const handleReset = () => {
     setSystemRecords([]);
-    setFieldRecords([]);
+    setFieldRawData([]);
+    setFieldColumns([]);
     setResults([]);
     setProcessLog('');
     setProcessError(null);
     setSystemRawData([]);
     setSystemColumns([]);
     setColumnMappings([]);
+    setFieldMapping({ id: '', lat: '', lng: '' });
   };
 
   // ── Logout ─────────────────────────────────────────────────────────────────
@@ -222,7 +235,7 @@ const Index = () => {
     toast.success('Anda telah keluar.');
   };
 
-  const canProcess = systemRecords.length > 0 && fieldRecords.length > 0 && !isProcessing;
+  const canProcess = systemRecords.length > 0 && fieldRawData.length > 0 && !isProcessing;
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -339,10 +352,10 @@ const Index = () => {
           onSystemDataLoad={handleSystemDataLoad}
           onFieldDataLoad={handleFieldDataLoad}
           systemCount={systemRecords.length}
-          fieldCount={fieldRecords.length}
+          fieldCount={fieldRawData.length}
         />
 
-        {/* ── Address Column Mapper ─────────────────────────────────────────── */}
+        {/* ── Address Column Mapper (Sistem) ─────────────────────────────────── */}
         {systemColumns.length > 0 && (
           <AddressColumnMapper
             availableColumns={systemColumns}
@@ -351,8 +364,56 @@ const Index = () => {
           />
         )}
 
+        {/* ── Field Column Mapper (Lapangan) ─────────────────────────────────── */}
+        {fieldColumns.length > 0 && (
+          <div className="section-card p-5" style={{ background: 'hsl(var(--surface-3) / 0.5)' }}>
+            <h3 className="text-sm font-semibold mb-3">Mapping Kolom Data Lapangan</h3>
+            <p className="text-xs mb-4" style={{ color: 'hsl(var(--muted-foreground))' }}>
+              Pilih kolom ID (Connote), Latitude, dan Longitude dari Data Lapangan agar dapat diproses.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-xs font-semibold mb-1 block" style={{ color: 'hsl(var(--foreground))' }}>ID (Connote)</label>
+                <select
+                  className="w-full border rounded-lg text-sm px-3 py-2"
+                  style={{ background: 'hsl(var(--surface-1))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }}
+                  value={fieldMapping.id}
+                  onChange={e => setFieldMapping(m => ({ ...m, id: e.target.value }))}
+                >
+                  <option value="">Pilih kolom...</option>
+                  {fieldColumns.map(c => <option key={`id-${c}`} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold mb-1 block" style={{ color: 'hsl(var(--foreground))' }}>Latitude</label>
+                <select
+                  className="w-full border rounded-lg text-sm px-3 py-2"
+                  style={{ background: 'hsl(var(--surface-1))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }}
+                  value={fieldMapping.lat}
+                  onChange={e => setFieldMapping(m => ({ ...m, lat: e.target.value }))}
+                >
+                  <option value="">Pilih kolom...</option>
+                  {fieldColumns.map(c => <option key={`lat-${c}`} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold mb-1 block" style={{ color: 'hsl(var(--foreground))' }}>Longitude</label>
+                <select
+                  className="w-full border rounded-lg text-sm px-3 py-2"
+                  style={{ background: 'hsl(var(--surface-1))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }}
+                  value={fieldMapping.lng}
+                  onChange={e => setFieldMapping(m => ({ ...m, lng: e.target.value }))}
+                >
+                  <option value="">Pilih kolom...</option>
+                  {fieldColumns.map(c => <option key={`lng-${c}`} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Process Button ────────────────────────────────────────────────── */}
-        {(systemRecords.length > 0 || fieldRecords.length > 0) && (
+        {(systemRecords.length > 0 || fieldRawData.length > 0) && (
           <div className="flex flex-wrap items-center gap-4">
             <button
               onClick={handleProcess}
@@ -388,7 +449,7 @@ const Index = () => {
             {!canProcess && !isProcessing && (
               <span className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
                 {systemRecords.length === 0 && '⬆ Upload data sistem'}
-                {systemRecords.length > 0 && fieldRecords.length === 0 && '⬆ Upload data lapangan'}
+                {systemRecords.length > 0 && fieldRawData.length === 0 && '⬆ Upload data lapangan'}
               </span>
             )}
           </div>
