@@ -25,7 +25,7 @@ func (h *ComparisonHandler) ValidateBatch(c *gin.Context) {
 
 	var req domain.BatchValidationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
 		return
 	}
 
