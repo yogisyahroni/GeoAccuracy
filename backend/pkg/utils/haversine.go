@@ -27,10 +27,10 @@ func CalculateDistance(lat1, lon1, lat2, lon2 float64) float64 {
 // EvaluateAccuracy categorizes a distance into predefined accuracy levels
 func EvaluateAccuracy(distanceKm float64) string {
 	if distanceKm <= 5.0 {
-		return "Akurat"
+		return "accurate"
 	}
 	if distanceKm <= 10.0 {
-		return "Cukup Akurat"
+		return "fairly_accurate"
 	}
-	return "Tidak Akurat"
+	return "inaccurate"
 }
