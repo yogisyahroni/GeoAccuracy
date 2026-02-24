@@ -182,38 +182,34 @@ export interface GeocodeResponse {
     cached: boolean;
 }
 
-// Matches backend CompareRecord
-export interface CompareRecord {
-    connote: string;
-    recipient_name?: string;
+// Matches backend ValidationRequestItem
+export interface ValidationRequestItem {
+    id: string;
     system_address: string;
     field_lat: number;
     field_lng: number;
 }
 
-// Matches backend ComparisonResult
-export interface ComparisonResultItem {
-    connote: string;
-    recipient_name: string;
+// Matches backend ValidationResult
+export interface ValidationResultItem {
+    id: string;
     system_address: string;
-    system_lat?: number;
-    system_lng?: number;
+    geo_lat: number;
+    geo_lng: number;
     field_lat: number;
     field_lng: number;
-    distance_meters?: number;
-    category: 'accurate' | 'fairly_accurate' | 'inaccurate' | 'error';
-    geocode_status: 'done' | 'error';
+    distance_km: number;
+    accuracy_level: 'accurate' | 'fairly_accurate' | 'inaccurate' | 'error';
+    provider: string;
+    error?: string;
 }
 
-export interface CompareRequest {
-    records: CompareRecord[];
+export interface BatchValidationRequest {
+    items: ValidationRequestItem[];
 }
 
-export interface CompareResponse {
-    results: ComparisonResultItem[];
-    total: number;
-    processed: number;
-    errors: number;
+export interface BatchValidationResponse {
+    results: ValidationResultItem[];
 }
 
 // ─── API Surface ──────────────────────────────────────────────────────────────
@@ -235,8 +231,8 @@ export const geocodeApi = {
 };
 
 export const comparisonApi = {
-    compareBatch(payload: CompareRequest): Promise<CompareResponse> {
-        return request<CompareResponse>('POST', '/api/compare', payload);
+    compareBatch(payload: BatchValidationRequest): Promise<BatchValidationResponse> {
+        return request<BatchValidationResponse>('POST', '/api/compare', payload);
     },
 };
 
@@ -386,20 +382,7 @@ export interface TransformationPipeline {
     config: PipelineConfig;
 }
 
-export interface BatchValidationResponse {
-    results: {
-        id: string;
-        system_address: string;
-        geo_lat: number;
-        geo_lng: number;
-        field_lat: number;
-        field_lng: number;
-        distance_km: number;
-        accuracy_level: string;
-        provider: string;
-        error?: string;
-    }[];
-}
+
 
 export const integrationApi = {
     createDataSource(payload: DataSourceInput): Promise<DataSource> {

@@ -9,7 +9,7 @@ import { AccuracyChart } from '@/components/AccuracyChart';
 import { DatabaseConnector } from '@/components/DatabaseConnector';
 import { AddressColumnMapper, ColumnMapping } from '@/components/AddressColumnMapper';
 import { ComparisonResult, DashboardStats, SystemRecord, FieldRecord } from '@/types/logistics';
-import { comparisonApi, ApiError, type CompareRecord } from '@/lib/api';
+import { comparisonApi, ApiError } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -121,20 +121,19 @@ const Index = () => {
     });
 
     // Build payload — only include records that have a field counterpart
-    const records: CompareRecord[] = systemRecords
+    const items = systemRecords
       .map((sys) => {
         const rawRow = rawDataMap.get(sys.connote) ?? {};
         const fieldData = fieldMap.get(sys.connote);
         if (!fieldData) return null;
         return {
-          connote: sys.connote,
-          recipient_name: sys.recipientName || undefined,
+          id: sys.connote,
           system_address: buildAddress(rawRow, sys),
           field_lat: fieldData.lat,
           field_lng: fieldData.lng,
-        } satisfies CompareRecord;
+        };
       })
-      .filter((r): r is CompareRecord => r !== null);
+      .filter((r) => r !== null) as any[];
 
     // Records with no field counterpart get error category immediately
     const noFieldResults: ComparisonResult[] = systemRecords
@@ -147,7 +146,7 @@ const Index = () => {
         geocodeStatus: 'error' as const,
       }));
 
-    if (records.length === 0) {
+    if (items.length === 0) {
       setResults(noFieldResults);
       setProcessLog('Tidak ada data lapangan yang cocok dengan data sistem.');
       setIsProcessing(false);
@@ -155,28 +154,29 @@ const Index = () => {
     }
 
     try {
-      setProcessLog(`Memproses ${records.length} record via Go backend...`);
-      const res = await comparisonApi.compareBatch({ records });
+      setProcessLog(`Memproses ${items.length} record via Go backend...`);
+      const res = await comparisonApi.compareBatch({ items } as any);
 
       // Map backend results back to frontend ComparisonResult shape
-      const backendResults: ComparisonResult[] = res.results.map((item) => ({
-        connote: item.connote,
-        recipientName: item.recipient_name,
-        systemAddress: item.system_address,
-        systemLat: item.system_lat,
-        systemLng: item.system_lng,
-        fieldLat: item.field_lat,
-        fieldLng: item.field_lng,
-        distanceMeters: item.distance_meters,
-        category: item.category,
-        geocodeStatus: item.geocode_status,
-      }));
+      const backendResults: ComparisonResult[] = res.results.map((item) => {
+        const sys = systemRecords.find((s) => s.connote === item.id);
+        return {
+          connote: item.id,
+          recipientName: sys?.recipientName || '',
+          systemAddress: item.system_address,
+          systemLat: item.geo_lat,
+          systemLng: item.geo_lng,
+          fieldLat: item.field_lat,
+          fieldLng: item.field_lng,
+          distanceMeters: item.distance_km * 1000,
+          category: item.accuracy_level as any || 'error',
+          geocodeStatus: item.error ? 'error' : 'done',
+        };
+      });
 
       setResults([...backendResults, ...noFieldResults]);
-      setProcessLog(
-        `Selesai! ${res.processed} diproses, ${res.errors} error.`,
-      );
-      toast.success(`Selesai memproses ${res.processed} dari ${res.total} record.`);
+      setProcessLog(`Selesai memproses ${res.results.length} record.`);
+      toast.success(`Selesai memproses ${res.results.length} record.`);
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.status === 0) {

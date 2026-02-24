@@ -1,0 +1,6 @@
+--- Testing DSN #0 ---
+--- Testing DSN #1 ---
+2026/02/24 03:29:02 Ping error: pq: Tenant or user not found (XX000)
+--- Testing DSN #2 ---
+2026/02/24 03:29:03 Ping error: pq: Tenant or user not found (XX000)
+SUCCESS with DSN #2
