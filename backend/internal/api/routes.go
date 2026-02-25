@@ -22,6 +22,7 @@ func SetupRouter(
 	webhookHandler *handlers.WebhookHandler,
 	analyticsHandler *handlers.AnalyticsHandler,
 	erpHandler *handlers.ErpIntegrationHandler,
+	batchHandler *handlers.BatchHandler,
 	webhookRepo domain.WebhookRepository,
 ) *gin.Engine {
 
@@ -93,6 +94,14 @@ func SetupRouter(
 
 				editorGroup.POST("/areas", areaHandler.CreateArea)
 				editorGroup.DELETE("/areas/:id", areaHandler.DeleteArea)
+
+				// Enterprise Batch Processing
+				editorGroup.POST("/batches", batchHandler.CreateBatch)
+				editorGroup.GET("/batches", batchHandler.ListBatches)
+				editorGroup.GET("/batches/:id/results", batchHandler.GetBatchResults)
+				editorGroup.POST("/batches/:id/system-data", batchHandler.UploadSystemData)
+				editorGroup.POST("/batches/:id/field-data", batchHandler.UploadFieldData)
+				editorGroup.POST("/batches/:id/process", batchHandler.ProcessBatch)
 			}
 
 			// ── Admin Only Access (Global Settings) ──

@@ -430,3 +430,65 @@ export const integrationApi = {
         return request<void>('POST', `/api/erp-integrations/${id}/sync`);
     }
 };
+
+// ─── Batch Processing API ────────────────────────────────────────────────────────
+
+export interface Batch {
+    id: string;
+    user_id: number;
+    name: string;
+    status: 'draft' | 'processing' | 'completed' | 'failed';
+    created_at: string;
+    updated_at: string;
+}
+
+export interface BatchItem {
+    id: string;
+    batch_id: string;
+    connote: string;
+    recipient_name: string;
+    system_address: string;
+    system_lat: number | null;
+    system_lng: number | null;
+    field_lat: number | null;
+    field_lng: number | null;
+    distance_km: number | null;
+    accuracy_level: string;
+    error: string;
+    geocode_status: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface SystemRecord {
+    connote: string;
+    recipient_name: string;
+    system_address: string;
+}
+
+export interface FieldRecord {
+    connote: string;
+    field_lat: number;
+    field_lng: number;
+}
+
+export const batchApi = {
+    createBatch: async (name: string): Promise<Batch> => {
+        return request<Batch>('POST', '/api/batches', { name });
+    },
+    listBatches: async (): Promise<Batch[]> => {
+        return request<Batch[]>('GET', '/api/batches');
+    },
+    uploadSystemData: async (batchId: string, records: SystemRecord[]): Promise<void> => {
+        return request<void>('POST', `/api/batches/${batchId}/system-data`, records);
+    },
+    uploadFieldData: async (batchId: string, records: FieldRecord[]): Promise<void> => {
+        return request<void>('POST', `/api/batches/${batchId}/field-data`, records);
+    },
+    processBatch: async (batchId: string): Promise<void> => {
+        return request<void>('POST', `/api/batches/${batchId}/process`);
+    },
+    getBatchResults: async (batchId: string): Promise<BatchItem[]> => {
+        return request<BatchItem[]>('GET', `/api/batches/${batchId}/results`);
+    },
+};

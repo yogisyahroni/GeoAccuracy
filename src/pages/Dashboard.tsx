@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Activity, RefreshCw, Info, AlertCircle } from 'lucide-react';
@@ -9,7 +9,7 @@ import { AccuracyChart } from '@/components/AccuracyChart';
 import { DatabaseConnector } from '@/components/DatabaseConnector';
 import { AddressColumnMapper, ColumnMapping } from '@/components/AddressColumnMapper';
 import { ComparisonResult, DashboardStats, SystemRecord, FieldRecord } from '@/types/logistics';
-import { comparisonApi, ApiError } from '@/lib/api';
+import { comparisonApi, batchApi, ApiError } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useSessionState } from '@/hooks/useSessionState';
 
@@ -30,6 +30,7 @@ const Dashboard = () => {
     const [columnMappings, setColumnMappings] = useSessionState<ColumnMapping[]>('dash_colMaps', []);
     const [fieldRawData, setFieldRawData] = useSessionState<Record<string, string>[]>('dash_fldRaw', []);
     const [fieldColumns, setFieldColumns] = useSessionState<string[]>('dash_fldCols', []);
+    const [isLoaded, setIsLoaded] = useSessionState<boolean>('dash_isLoaded', false);
 
     const stats: DashboardStats = {
         total: results.length,
@@ -39,6 +40,83 @@ const Dashboard = () => {
         pending: results.filter(r => r.category === 'pending').length,
         error: results.filter(r => r.category === 'error').length,
     };
+
+    // Auto-load latest batch from the Enterprise backend if opening on a new device/mobile
+    useEffect(() => {
+        if (!user || isLoaded) return;
+
+        setIsLoaded(true); // Prevent repeated fetch loops
+
+        let isMounted = true;
+        const loadLatestBatch = async () => {
+            try {
+                const batches = await batchApi.listBatches();
+                if (batches.length > 0 && isMounted) {
+                    const latestBatch = batches[0];
+                    if (latestBatch.status === 'completed' || latestBatch.status === 'failed') {
+                        const finalItems = await batchApi.getBatchResults(latestBatch.id);
+
+                        if (finalItems.length > 0 && isMounted) {
+                            toast.info(`Memuat riwayat pemrosesan terakhir (${latestBatch.name})...`);
+                            const backendResults: ComparisonResult[] = finalItems.map(item => {
+                                return {
+                                    connote: item.connote,
+                                    recipientName: item.recipient_name || '',
+                                    systemAddress: item.system_address,
+                                    systemLat: item.system_lat || 0,
+                                    systemLng: item.system_lng || 0,
+                                    fieldLat: item.field_lat || 0,
+                                    fieldLng: item.field_lng || 0,
+                                    distanceMeters: item.distance_km ? item.distance_km * 1000 : 0,
+                                    category: (item.accuracy_level as any) || 'error',
+                                    geocodeStatus: item.error ? 'error' : item.geocode_status as any,
+                                };
+                            });
+
+                            const sysRecs: SystemRecord[] = finalItems.map(item => ({
+                                connote: item.connote,
+                                recipientName: item.recipient_name || '',
+                                address: item.system_address,
+                                city: '',
+                                province: '',
+                                geocodeStatus: item.error ? 'error' : item.geocode_status as any,
+                            }));
+
+                            const fldRecs: FieldRecord[] = finalItems.filter(i => i.field_lat && i.field_lng).map(item => ({
+                                connote: item.connote,
+                                lat: item.field_lat || 0,
+                                lng: item.field_lng || 0,
+                                reportedBy: '',
+                                reportDate: '',
+                            }));
+
+                            // Load raw mock representation so that UI tables display properly without uploading files
+                            const mockSysRaw = finalItems.map(i => ({ connote: i.connote, recipient_name: i.recipient_name || '', address: i.system_address }));
+                            const mockFldRaw = finalItems.filter(i => i.field_lat && i.field_lng).map(i => ({ connote: i.connote, lat: String(i.field_lat), lng: String(i.field_lng) }));
+
+                            if (mockSysRaw.length > 0) {
+                                setSystemColumns(Object.keys(mockSysRaw[0]));
+                                setSystemRawData(mockSysRaw);
+                            }
+                            if (mockFldRaw.length > 0) {
+                                setFieldColumns(Object.keys(mockFldRaw[0]));
+                                setFieldRawData(mockFldRaw as Record<string, string>[]);
+                            }
+
+                            setSystemRecords(sysRecs);
+                            setFieldRecords(fldRecs);
+                            setResults(backendResults);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Gagal memuat batch terakhir:", err);
+            }
+        };
+
+        loadLatestBatch();
+        return () => { isMounted = false; };
+    }, [user, isLoaded, setIsLoaded, setSystemRecords, setFieldRecords, setResults, setSystemColumns, setSystemRawData, setFieldColumns, setFieldRawData]);
 
     const handleSystemDataLoad = useCallback((data: Record<string, string>[]) => {
         if (data.length > 0) {
@@ -122,21 +200,23 @@ const Dashboard = () => {
             if (connote) rawDataMap.set(connote, row);
         });
 
-        const items = systemRecords
-            .map(sys => {
-                const sysRawRow = rawDataMap.get(sys.connote) ?? {};
-                const fieldData = fieldMap.get(sys.connote);
-                if (!fieldData) return null;
-                const fieldRawRow = fieldRawMap.get(sys.connote) ?? null;
+        // Prepare System Records with built addresses
+        const systemPayload = systemRecords.map(sys => {
+            const sysRawRow = rawDataMap.get(sys.connote) ?? {};
+            const fieldRawRow = fieldRawMap.get(sys.connote) ?? null;
+            return {
+                connote: sys.connote,
+                recipient_name: sys.recipientName,
+                system_address: buildAddress(sysRawRow, fieldRawRow, sys)
+            };
+        });
 
-                return {
-                    id: sys.connote,
-                    system_address: buildAddress(sysRawRow, fieldRawRow, sys),
-                    field_lat: fieldData.lat,
-                    field_lng: fieldData.lng,
-                };
-            })
-            .filter((r) => r !== null) as any[];
+        // Prepare Field Records
+        const fieldPayload = fieldRecords.map(fld => ({
+            connote: fld.connote,
+            field_lat: fld.lat,
+            field_lng: fld.lng
+        }));
 
         const noFieldResults: ComparisonResult[] = systemRecords
             .filter(sys => !fieldMap.has(sys.connote))
@@ -148,36 +228,42 @@ const Dashboard = () => {
                 geocodeStatus: 'error' as const,
             }));
 
-        if (items.length === 0) {
-            setResults(noFieldResults);
-            setProcessLog('Tidak ada data lapangan yang cocok dengan data sistem.');
-            setIsProcessing(false);
-            return;
-        }
-
         try {
-            setProcessLog(`Memproses ${items.length} record via Go backend...`);
-            const res = await comparisonApi.compareBatch({ items } as any);
+            setProcessLog('Membuat Batch baru...');
+            const batchName = `Batch ${new Date().toLocaleString('id-ID')}`;
+            const batch = await batchApi.createBatch(batchName);
 
-            const backendResults: ComparisonResult[] = res.results.map(item => {
-                const sys = systemRecords.find((s) => s.connote === item.id);
+            setProcessLog('Mengunggah data sistem...');
+            await batchApi.uploadSystemData(batch.id, systemPayload);
+
+            setProcessLog('Mengunggah data lapangan...');
+            await batchApi.uploadFieldData(batch.id, fieldPayload);
+
+            setProcessLog(`Memproses geocoding dan perbandingan via Go backend...`);
+            await batchApi.processBatch(batch.id);
+
+            setProcessLog('Mengambil hasil pemrosesan...');
+            const finalItems = await batchApi.getBatchResults(batch.id);
+
+            const backendResults: ComparisonResult[] = finalItems.map(item => {
+                const sys = systemRecords.find((s) => s.connote === item.connote);
                 return {
-                    connote: item.id,
-                    recipientName: sys?.recipientName || '',
+                    connote: item.connote,
+                    recipientName: sys?.recipientName || item.recipient_name || '',
                     systemAddress: item.system_address,
-                    systemLat: item.geo_lat,
-                    systemLng: item.geo_lng,
-                    fieldLat: item.field_lat,
-                    fieldLng: item.field_lng,
-                    distanceMeters: item.distance_km * 1000,
+                    systemLat: item.system_lat || 0,
+                    systemLng: item.system_lng || 0,
+                    fieldLat: item.field_lat || 0,
+                    fieldLng: item.field_lng || 0,
+                    distanceMeters: item.distance_km ? item.distance_km * 1000 : 0,
                     category: (item.accuracy_level as any) || 'error',
-                    geocodeStatus: item.error ? 'error' : 'done',
+                    geocodeStatus: item.error ? 'error' : item.geocode_status as any,
                 };
             });
 
             setResults([...backendResults, ...noFieldResults]);
-            setProcessLog(`Selesai memproses ${res.results.length} record.`);
-            toast.success(`Selesai memproses ${res.results.length} record.`);
+            setProcessLog(`Selesai memproses ${finalItems.length} record.`);
+            toast.success(`Selesai memproses ${finalItems.length} record.`);
         } catch (err) {
             if (err instanceof ApiError) {
                 if (err.status === 0) {

@@ -39,6 +39,7 @@ func main() {
 	dsRepo := repository.NewDataSourceRepository(database)
 	areaRepo := repository.NewAreaRepository(database)
 	webhookRepo := repository.NewWebhookRepository(database)
+	batchRepo := repository.NewBatchRepository(database)
 
 	sqlxDB := sqlx.NewDb(database, "postgres")
 	analyticsRepo := repository.NewAnalyticsRepository(sqlxDB)
@@ -48,6 +49,7 @@ func main() {
 	geoSvc := service.NewGeocodeService(geoRepo, settingsRepo)
 	historySvc := service.NewHistoryService(historyRepo)
 	compSvc := service.NewComparisonService(geoSvc, historySvc)
+	batchSvc := service.NewBatchService(batchRepo, geoSvc, historySvc)
 	settingsSvc := service.NewSettingsService(settingsRepo)
 	dsSvc := service.NewDataSourceService(dsRepo, cfg)
 	etlSvc := service.NewETLService(dsRepo, cfg)
@@ -82,9 +84,10 @@ func main() {
 	webhookHandler := handlers.NewWebhookHandler(webhookSvc)
 	analyticsHandler := handlers.NewAnalyticsHandler(analyticsRepo)
 	erpHandler := handlers.NewErpIntegrationHandler(erpSvc)
+	batchHandler := handlers.NewBatchHandler(batchSvc)
 
 	// 6. Setup Router
-	router := api.SetupRouter(cfg, authHandler, geoHandler, compHandler, settingsHandler, historyHandler, dsHandler, areaHandler, webhookHandler, analyticsHandler, erpHandler, webhookRepo)
+	router := api.SetupRouter(cfg, authHandler, geoHandler, compHandler, settingsHandler, historyHandler, dsHandler, areaHandler, webhookHandler, analyticsHandler, erpHandler, batchHandler, webhookRepo)
 
 	// 7. Start Server with Graceful Shutdown
 	srv := &http.Server{
