@@ -279,6 +279,17 @@ const Dashboard = () => {
             setResults([...backendResults, ...noFieldResults]);
             setProcessLog(`Selesai memproses ${finalItems.length} record.`);
             toast.success(`Selesai memproses ${finalItems.length} record.`);
+
+            // Reset the upload area back to the empty drop-zone state (Gambar 2).
+            // Results are intentionally kept so the comparison table stays visible.
+            setSystemRecords([]);
+            setFieldRecords([]);
+            setSystemRawData([]);
+            setSystemColumns([]);
+            setFieldRawData([]);
+            setFieldColumns([]);
+            setColumnMappings([]);
+            setProcessLog('');
         } catch (err) {
             if (err instanceof ApiError) {
                 if (err.status === 0) {
