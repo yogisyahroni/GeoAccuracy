@@ -49,7 +49,7 @@ func main() {
 	geoSvc := service.NewGeocodeService(geoRepo, settingsRepo)
 	historySvc := service.NewHistoryService(historyRepo)
 	compSvc := service.NewComparisonService(geoSvc, historySvc)
-	batchSvc := service.NewBatchService(batchRepo, geoSvc, historySvc)
+	batchSvc := service.NewBatchService(batchRepo, geoSvc, historySvc, analyticsRepo)
 	settingsSvc := service.NewSettingsService(settingsRepo)
 	dsSvc := service.NewDataSourceService(dsRepo, cfg)
 	etlSvc := service.NewETLService(dsRepo, cfg)

@@ -43,7 +43,7 @@ func (r *batchRepository) GetBatchByID(ctx context.Context, id uuid.UUID) (*doma
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil // Or return a specific error
+			return nil, nil
 		}
 		return nil, err
 	}
@@ -91,45 +91,40 @@ func (r *batchRepository) UpsertBatchItems(ctx context.Context, items []domain.B
 		return nil
 	}
 
-	// Simplest approach: Transaction with batched inserts/updates
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	// ON CONFLICT implies we need a unique constraint on (batch_id, connote)
-	// We didn't create a unique constraint in migration, but let's just insert for now
-	// Or we can query existing and update if there's a match.
-	// Since UI might upload system data, then field data with same connotes.
-	// We should upsert based on batch_id and connote.
-	// To do this properly without ON CONFLICT (unless we add UNIQUE constraint), we can select first:
-
 	for _, item := range items {
 		if item.ID == uuid.Nil {
 			item.ID = uuid.New()
 		}
 
-		// Try update first
+		// Try update first — include courier_id so it is preserved on update
 		updateQuery := `
 			UPDATE batch_items
 			SET recipient_name = COALESCE(NULLIF($1, ''), recipient_name),
 				system_address = COALESCE(NULLIF($2, ''), system_address),
-				system_lat = COALESCE($3, system_lat),
-				system_lng = COALESCE($4, system_lng),
-				field_lat = COALESCE($5, field_lat),
-				field_lng = COALESCE($6, field_lng),
-				distance_km = COALESCE($7, distance_km),
-				accuracy_level = COALESCE(NULLIF($8, ''), accuracy_level),
-				error = COALESCE(NULLIF($9, ''), error),
-				geocode_status = COALESCE(NULLIF($10, ''), geocode_status),
-				updated_at = CURRENT_TIMESTAMP
-			WHERE batch_id = $11 AND connote = $12
+				courier_id     = COALESCE(NULLIF($3, ''), courier_id),
+				system_lat     = COALESCE($4, system_lat),
+				system_lng     = COALESCE($5, system_lng),
+				field_lat      = COALESCE($6, field_lat),
+				field_lng      = COALESCE($7, field_lng),
+				distance_km    = COALESCE($8, distance_km),
+				accuracy_level = COALESCE(NULLIF($9, ''),  accuracy_level),
+				error          = COALESCE(NULLIF($10, ''), error),
+				geocode_status = COALESCE(NULLIF($11, ''), geocode_status),
+				updated_at     = CURRENT_TIMESTAMP
+			WHERE batch_id = $12 AND connote = $13
 		`
 
 		res, err := tx.ExecContext(ctx, updateQuery,
-			item.RecipientName, item.SystemAddress, item.SystemLat, item.SystemLng,
-			item.FieldLat, item.FieldLng, item.DistanceKm, item.AccuracyLevel, item.Error, item.GeocodeStatus,
+			item.RecipientName, item.SystemAddress, item.CourierID,
+			item.SystemLat, item.SystemLng,
+			item.FieldLat, item.FieldLng,
+			item.DistanceKm, item.AccuracyLevel, item.Error, item.GeocodeStatus,
 			item.BatchID, item.Connote,
 		)
 		if err != nil {
@@ -142,18 +137,17 @@ func (r *batchRepository) UpsertBatchItems(ctx context.Context, items []domain.B
 		}
 
 		if rowsAffected == 0 {
-			// Insert
 			insertQuery := `
 				INSERT INTO batch_items (
-					id, batch_id, connote, recipient_name, system_address,
+					id, batch_id, connote, recipient_name, system_address, courier_id,
 					system_lat, system_lng, field_lat, field_lng,
 					distance_km, accuracy_level, error, geocode_status
 				) VALUES (
-					$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+					$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
 				)
 			`
 			_, err = tx.ExecContext(ctx, insertQuery,
-				item.ID, item.BatchID, item.Connote, item.RecipientName, item.SystemAddress,
+				item.ID, item.BatchID, item.Connote, item.RecipientName, item.SystemAddress, item.CourierID,
 				item.SystemLat, item.SystemLng, item.FieldLat, item.FieldLng,
 				item.DistanceKm, item.AccuracyLevel, item.Error, item.GeocodeStatus,
 			)
@@ -168,8 +162,8 @@ func (r *batchRepository) UpsertBatchItems(ctx context.Context, items []domain.B
 
 func (r *batchRepository) GetBatchItemsByBatchID(ctx context.Context, batchID uuid.UUID) ([]domain.BatchItem, error) {
 	query := `
-		SELECT id, batch_id, connote, recipient_name, system_address, 
-		       system_lat, system_lng, field_lat, field_lng, 
+		SELECT id, batch_id, connote, recipient_name, system_address, courier_id,
+		       system_lat, system_lng, field_lat, field_lng,
 		       distance_km, accuracy_level, error, geocode_status, created_at, updated_at
 		FROM batch_items
 		WHERE batch_id = $1
@@ -180,8 +174,8 @@ func (r *batchRepository) GetBatchItemsByBatchID(ctx context.Context, batchID uu
 
 func (r *batchRepository) GetBatchItemsByBatchIDAndStatus(ctx context.Context, batchID uuid.UUID, status string) ([]domain.BatchItem, error) {
 	query := `
-		SELECT id, batch_id, connote, recipient_name, system_address, 
-		       system_lat, system_lng, field_lat, field_lng, 
+		SELECT id, batch_id, connote, recipient_name, system_address, courier_id,
+		       system_lat, system_lng, field_lat, field_lng,
 		       distance_km, accuracy_level, error, geocode_status, created_at, updated_at
 		FROM batch_items
 		WHERE batch_id = $1 AND geocode_status = $2
@@ -201,7 +195,7 @@ func (r *batchRepository) queryBatchItems(ctx context.Context, query string, arg
 	for rows.Next() {
 		var i domain.BatchItem
 		if err := rows.Scan(
-			&i.ID, &i.BatchID, &i.Connote, &i.RecipientName, &i.SystemAddress,
+			&i.ID, &i.BatchID, &i.Connote, &i.RecipientName, &i.SystemAddress, &i.CourierID,
 			&i.SystemLat, &i.SystemLng, &i.FieldLat, &i.FieldLng,
 			&i.DistanceKm, &i.AccuracyLevel, &i.Error, &i.GeocodeStatus,
 			&i.CreatedAt, &i.UpdatedAt,

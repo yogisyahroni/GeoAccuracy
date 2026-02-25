@@ -34,6 +34,7 @@ type BatchItem struct {
 	Connote       string    `json:"connote" db:"connote"`
 	RecipientName string    `json:"recipient_name" db:"recipient_name"`
 	SystemAddress string    `json:"system_address" db:"system_address"`
+	CourierID     string    `json:"courier_id" db:"courier_id"` // maps from CSV reported_by
 	SystemLat     *float64  `json:"system_lat" db:"system_lat"`
 	SystemLng     *float64  `json:"system_lng" db:"system_lng"`
 	FieldLat      *float64  `json:"field_lat" db:"field_lat"`
@@ -66,9 +67,11 @@ type SystemRecord struct {
 }
 
 type FieldRecord struct {
-	Connote  string  `json:"connote"`
-	FieldLat float64 `json:"field_lat"`
-	FieldLng float64 `json:"field_lng"`
+	Connote    string  `json:"connote"`
+	FieldLat   float64 `json:"field_lat"`
+	FieldLng   float64 `json:"field_lng"`
+	ReportedBy string  `json:"reported_by"` // courier identifier from CSV
+	ReportDate string  `json:"report_date"`
 }
 
 // BatchService defines the interface for batch business logic
