@@ -470,6 +470,8 @@ export interface FieldRecord {
     connote: string;
     field_lat: number;
     field_lng: number;
+    reported_by?: string;  // courier identifier — maps to courier_id in backend
+    report_date?: string;
 }
 
 export const batchApi = {

@@ -192,7 +192,9 @@ const Dashboard = () => {
         const fieldPayload = fieldRecords.map(fld => ({
             connote: fld.connote,
             field_lat: fld.lat,
-            field_lng: fld.lng
+            field_lng: fld.lng,
+            reported_by: fld.reportedBy || '',
+            report_date: fld.reportDate || '',
         }));
 
         const noFieldResults: ComparisonResult[] = systemRecords
