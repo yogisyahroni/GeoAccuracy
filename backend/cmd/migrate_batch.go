@@ -2,8 +2,8 @@ package main
 
 import (
 	"database/sql"
-	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 
 	_ "github.com/lib/pq"
@@ -21,7 +21,7 @@ func main() {
 	}
 
 	upFile := filepath.Join("internal", "db", "migrations", "000009_create_batches_tables.up.sql")
-	c, err := ioutil.ReadFile(upFile)
+	c, err := os.ReadFile(upFile)
 	if err != nil {
 		log.Fatalf("Cannot read up file: %v", err)
 	}
