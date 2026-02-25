@@ -1,15 +1,19 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"geoaccuracy-backend/internal/domain"
 	"geoaccuracy-backend/internal/service"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type DataSourceHandler struct {
@@ -17,10 +21,23 @@ type DataSourceHandler struct {
 	etlService   service.ETLService
 	compService  service.ComparisonService
 	schedService service.SchedulerService
+	batchService domain.BatchService // persists ETL results to batch_items for Dashboard visibility
 }
 
-func NewDataSourceHandler(ds service.DataSourceService, etl service.ETLService, comp service.ComparisonService, sched service.SchedulerService) *DataSourceHandler {
-	return &DataSourceHandler{dsService: ds, etlService: etl, compService: comp, schedService: sched}
+func NewDataSourceHandler(
+	ds service.DataSourceService,
+	etl service.ETLService,
+	comp service.ComparisonService,
+	sched service.SchedulerService,
+	batch domain.BatchService,
+) *DataSourceHandler {
+	return &DataSourceHandler{
+		dsService:    ds,
+		etlService:   etl,
+		compService:  comp,
+		schedService: sched,
+		batchService: batch,
+	}
 }
 
 // Create handles creating a new saved connection
@@ -125,7 +142,9 @@ func (h *DataSourceHandler) PreviewPipeline(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": results})
 }
 
-// RunPipeline executes the ETL pipeline and streams the output to the ComparisonService and the HTTP response
+// RunPipeline executes the ETL pipeline and:
+// 1. Streams results back to the HTTP client in real-time (chunked JSON)
+// 2. Creates a Batch entry so results appear in the Dashboard alongside CSV uploads
 func (h *DataSourceHandler) RunPipeline(c *gin.Context) {
 	userID, ok := getUserID(c)
 	if !ok {
@@ -139,6 +158,22 @@ func (h *DataSourceHandler) RunPipeline(c *gin.Context) {
 	}
 	pipeline.UserID = int64(userID)
 
+	ctx := c.Request.Context()
+
+	// --- Create a Batch entry so results persist in the Dashboard ---
+	batchName := fmt.Sprintf("ETL: %s (%s)", pipeline.Name, time.Now().Format("02 Jan 2006 15:04"))
+	var batchID uuid.UUID
+	var etlItems []domain.BatchItem
+
+	if h.batchService != nil {
+		batch, err := h.batchService.CreateBatch(ctx, int64(userID), batchName)
+		if err != nil {
+			log.Printf("WARN: could not create batch for ETL pipeline %d: %v", pipeline.ID, err)
+		} else {
+			batchID = batch.ID
+		}
+	}
+
 	session := &domain.ComparisonSession{UserID: userID}
 
 	// Set headers for chunked streaming
@@ -149,9 +184,9 @@ func (h *DataSourceHandler) RunPipeline(c *gin.Context) {
 	c.Writer.Flush()
 
 	first := true
-	err := h.etlService.ExecutePipelineStream(c.Request.Context(), &pipeline, 1000, func(batch []domain.ValidationRequestItem) error {
+	err := h.etlService.ExecutePipelineStream(ctx, &pipeline, 1000, func(batch []domain.ValidationRequestItem) error {
 		for _, item := range batch {
-			res := h.compService.ValidateSingle(c.Request.Context(), userID, item)
+			res := h.compService.ValidateSingle(ctx, userID, item)
 
 			// Update session stats
 			session.TotalCount++
@@ -170,12 +205,44 @@ func (h *DataSourceHandler) RunPipeline(c *gin.Context) {
 				}
 			}
 
-			// Write JSON chunk
+			// Accumulate into ETL batch for Dashboard persistence
+			if batchID != uuid.Nil {
+				// Determine geocode_status: if there's an error, mark as "failed", else "completed"
+				geoStatus := "completed"
+				if res.Error != "" {
+					geoStatus = "failed"
+				}
+				bi := domain.BatchItem{
+					ID:            uuid.New(),
+					BatchID:       batchID,
+					Connote:       item.ID,
+					SystemAddress: item.SystemAddress,
+					GeocodeStatus: geoStatus,
+					AccuracyLevel: res.AccuracyLevel,
+					Error:         res.Error,
+				}
+				if res.GeoLat != 0 {
+					lat, lng := res.GeoLat, res.GeoLng
+					bi.SystemLat = &lat
+					bi.SystemLng = &lng
+				}
+				if item.FieldLat != 0 {
+					fLat, fLng := item.FieldLat, item.FieldLng
+					bi.FieldLat = &fLat
+					bi.FieldLng = &fLng
+				}
+				if res.DistanceKm != 0 {
+					dist := res.DistanceKm
+					bi.DistanceKm = &dist
+				}
+				etlItems = append(etlItems, bi)
+			}
+
+			// Write JSON chunk to stream
 			jsonBytes, err := json.Marshal(res)
 			if err != nil {
 				continue
 			}
-
 			if !first {
 				c.Writer.Write([]byte(`,`))
 			}
@@ -188,7 +255,6 @@ func (h *DataSourceHandler) RunPipeline(c *gin.Context) {
 
 	if err != nil {
 		log.Printf("ERROR streaming pipeline: %v", err)
-		// Inject error at the end of the JSON array
 		errJSON, _ := json.Marshal(gin.H{"pipeline_error": err.Error()})
 		if !first {
 			c.Writer.Write([]byte(`,`))
@@ -199,6 +265,22 @@ func (h *DataSourceHandler) RunPipeline(c *gin.Context) {
 	c.Writer.Write([]byte(`]}`))
 	c.Writer.Flush()
 
+	// --- Persist ETL results to batch_items (for Dashboard) in background ---
+	if batchID != uuid.Nil && len(etlItems) > 0 {
+		go func() {
+			// Background context since HTTP is already done
+			bgCtx := context.Background()
+			if err := h.batchService.UpsertETLItems(bgCtx, batchID, etlItems); err != nil {
+				log.Printf("WARN: failed to persist ETL batch items for batch %v: %v", batchID, err)
+				return
+			}
+			if err := h.batchService.MarkBatchCompleted(bgCtx, batchID); err != nil {
+				log.Printf("WARN: failed to mark ETL batch %v as completed: %v", batchID, err)
+			}
+		}()
+	}
+
+	// --- Persist comparison session (History) ---
 	if session.TotalCount > 0 {
 		go func() {
 			saveErr := h.compService.SaveSession(session)

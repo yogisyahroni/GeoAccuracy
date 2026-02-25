@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -52,13 +53,34 @@ func NewGeocodeService(geoRepo repository.GeocodeRepository, settingsRepo reposi
 	}
 }
 
+// normalizeAddress cleans up address formatting so that minor typographic
+// differences (punctuation, extra spaces) do not generate redundant API calls.
+// Examples of strings that will map to the same cache key:
+//
+//	"Jl. Sudirman, No.1" → "jl sudirman no 1"
+//	"Jl Sudirman No.1"   → "jl sudirman no 1"  (CACHE HIT ✓)
+var multiSpaceRe = regexp.MustCompile(`\s+`)
+
+func normalizeAddress(s string) string {
+	s = strings.ToLower(s)
+	// Replace common punctuation that doesn't affect location identity
+	replacer := strings.NewReplacer(".", " ", ",", " ", ";", " ", "/", " ", "(", " ", ")", " ")
+	s = replacer.Replace(s)
+	// Collapse consecutive whitespace into a single space
+	s = multiSpaceRe.ReplaceAllString(s, " ")
+	return strings.TrimSpace(s)
+}
+
 func (s *geocodeService) GeocodeAddress(ctx context.Context, userID int, address string) (*domain.GeocodeResponse, error) {
 	address = strings.TrimSpace(address)
 	if address == "" {
 		return nil, errors.New("empty address")
 	}
 
-	addressHash := generateHash(address)
+	// Normalize before hashing so minor formatting differences hit the same cache entry.
+	// The original (non-normalized) address is preserved for display and debugging.
+	normalizedForHash := normalizeAddress(address)
+	addressHash := generateHash(normalizedForHash)
 
 	// 1. Check PostgreSQL Cache
 	cached, err := s.geoRepo.GetCachedResult(ctx, addressHash)
@@ -387,6 +409,10 @@ func (s *geocodeService) geocodeGoogleMaps(ctx context.Context, address, apiKey 
 }
 
 func (s *geocodeService) cacheResult(hash, originalAddress string, res *domain.GeocodeResponse) {
+	// Cache TTL: ~10 years (effectively permanent).
+	// Street coordinates in Indonesia do not change on a human timescale.
+	// If a specific address needs to be re-geocoded (e.g., street renamed),
+	// delete the row: DELETE FROM geocode_cache WHERE address_hash = '...';
 	cacheEntry := &domain.GeocodeCache{
 		AddressHash:     hash,
 		OriginalAddress: originalAddress,
@@ -395,7 +421,7 @@ func (s *geocodeService) cacheResult(hash, originalAddress string, res *domain.G
 		Lat:             res.Lat,
 		Lng:             res.Lng,
 		Provider:        res.Provider,
-		ExpiresAt:       time.Now().Add(30 * 24 * time.Hour), // 30 days cache
+		ExpiresAt:       time.Now().Add(10 * 365 * 24 * time.Hour),
 	}
 	_ = s.geoRepo.SaveResult(context.Background(), cacheEntry) // async safe context
 }

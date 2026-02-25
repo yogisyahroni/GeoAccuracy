@@ -82,4 +82,8 @@ type BatchService interface {
 
 	ProcessBatch(ctx context.Context, userID int64, batchID uuid.UUID) error
 	GetBatchResults(ctx context.Context, batchID uuid.UUID) ([]BatchItem, error)
+
+	// ETL-specific methods: persist pipeline results to batch_items for Dashboard visibility
+	UpsertETLItems(ctx context.Context, batchID uuid.UUID, items []BatchItem) error
+	MarkBatchCompleted(ctx context.Context, batchID uuid.UUID) error
 }

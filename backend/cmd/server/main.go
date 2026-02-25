@@ -79,7 +79,7 @@ func main() {
 	compHandler := handlers.NewComparisonHandler(compSvc)
 	settingsHandler := handlers.NewSettingsHandler(settingsSvc)
 	historyHandler := handlers.NewHistoryHandler(historySvc)
-	dsHandler := handlers.NewDataSourceHandler(dsSvc, etlSvc, compSvc, schedulerSvc)
+	dsHandler := handlers.NewDataSourceHandler(dsSvc, etlSvc, compSvc, schedulerSvc, batchSvc)
 	areaHandler := handlers.NewAreaHandler(areaSvc)
 	webhookHandler := handlers.NewWebhookHandler(webhookSvc)
 	analyticsHandler := handlers.NewAnalyticsHandler(analyticsRepo)

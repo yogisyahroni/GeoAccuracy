@@ -173,3 +173,15 @@ func (s *batchService) ProcessBatch(ctx context.Context, userID int64, batchID u
 func (s *batchService) GetBatchResults(ctx context.Context, batchID uuid.UUID) ([]domain.BatchItem, error) {
 	return s.batchRepo.GetBatchItemsByBatchID(ctx, batchID)
 }
+
+// UpsertETLItems bulk-inserts ETL-derived BatchItems so they appear in the Dashboard
+// alongside CSV-upload batches. Called after RunPipeline finishes streaming.
+func (s *batchService) UpsertETLItems(ctx context.Context, batchID uuid.UUID, items []domain.BatchItem) error {
+	return s.batchRepo.UpsertBatchItems(ctx, items)
+}
+
+// MarkBatchCompleted transitions an ETL batch to the completed state so the
+// Dashboard's loadLatestBatch() will pick it up.
+func (s *batchService) MarkBatchCompleted(ctx context.Context, batchID uuid.UUID) error {
+	return s.batchRepo.UpdateBatchStatus(ctx, batchID, domain.BatchStatusCompleted)
+}
