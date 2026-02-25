@@ -81,47 +81,9 @@ const Dashboard = () => {
                     geocodeStatus: item.error ? 'error' : item.geocode_status as any,
                 }));
 
-                const sysRecs: SystemRecord[] = finalItems.map(item => ({
-                    connote: item.connote,
-                    recipientName: item.recipient_name || '',
-                    address: item.system_address,
-                    city: '',
-                    province: '',
-                    geocodeStatus: item.error ? 'error' : item.geocode_status as any,
-                }));
-
-                const fldRecs: FieldRecord[] = finalItems
-                    .filter(i => i.field_lat && i.field_lng)
-                    .map(item => ({
-                        connote: item.connote,
-                        lat: item.field_lat || 0,
-                        lng: item.field_lng || 0,
-                        reportedBy: '',
-                        reportDate: '',
-                    }));
-
-                // Build mock raw representations so UI tables render correctly
-                // even when no new file has been uploaded in this session.
-                const mockSysRaw = finalItems.map(i => ({
-                    connote: i.connote,
-                    recipient_name: i.recipient_name || '',
-                    address: i.system_address,
-                }));
-                const mockFldRaw = finalItems
-                    .filter(i => i.field_lat && i.field_lng)
-                    .map(i => ({ connote: i.connote, lat: String(i.field_lat), lng: String(i.field_lng) }));
-
-                if (mockSysRaw.length > 0) {
-                    setSystemColumns(Object.keys(mockSysRaw[0]));
-                    setSystemRawData(mockSysRaw);
-                }
-                if (mockFldRaw.length > 0) {
-                    setFieldColumns(Object.keys(mockFldRaw[0]));
-                    setFieldRawData(mockFldRaw as Record<string, string>[]);
-                }
-
-                setSystemRecords(sysRecs);
-                setFieldRecords(fldRecs);
+                // Only restore the RESULTS table — never restore the upload drop zones.
+                // The upload area (systemRecords, fieldRecords, raw data) always
+                // starts empty on refresh so users see the clean "Drop file" state.
                 setResults(backendResults);
             } catch (err) {
                 console.error('Gagal memuat batch terakhir:', err);
