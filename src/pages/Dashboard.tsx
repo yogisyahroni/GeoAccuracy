@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Activity, RefreshCw, Info, AlertCircle } from 'lucide-react';
@@ -30,7 +30,9 @@ const Dashboard = () => {
     const [columnMappings, setColumnMappings] = useSessionState<ColumnMapping[]>('dash_colMaps', []);
     const [fieldRawData, setFieldRawData] = useSessionState<Record<string, string>[]>('dash_fldRaw', []);
     const [fieldColumns, setFieldColumns] = useSessionState<string[]>('dash_fldCols', []);
-    const [isLoaded, setIsLoaded] = useSessionState<boolean>('dash_isLoaded', false);
+    // useRef is the correct tool for a one-shot guard: it won't trigger re-renders
+    // and its value persists across renders without being part of the dependency array.
+    const hasLoadedRef = useRef(false);
 
     const stats: DashboardStats = {
         total: results.length,
@@ -41,82 +43,95 @@ const Dashboard = () => {
         error: results.filter(r => r.category === 'error').length,
     };
 
-    // Auto-load latest batch from the Enterprise backend if opening on a new device/mobile
+    // Auto-load latest batch from the Enterprise PostgreSQL backend.
+    // Using useRef as guard (not state) so that:
+    // 1. The guard persists across re-renders without triggering new renders.
+    // 2. The useEffect dependency array is minimal ([user]) — no unstable setter references.
     useEffect(() => {
-        if (!user || isLoaded) return;
+        if (!user || hasLoadedRef.current) return;
 
-        setIsLoaded(true); // Prevent repeated fetch loops
+        // Set the guard BEFORE the async call to prevent concurrent duplicate fetches
+        // (e.g., from StrictMode double-invocation in development).
+        hasLoadedRef.current = true;
 
         let isMounted = true;
         const loadLatestBatch = async () => {
             try {
                 const batches = await batchApi.listBatches();
-                if (batches.length > 0 && isMounted) {
-                    const latestBatch = batches[0];
-                    if (latestBatch.status === 'completed' || latestBatch.status === 'failed') {
-                        const finalItems = await batchApi.getBatchResults(latestBatch.id);
+                if (batches.length === 0 || !isMounted) return;
 
-                        if (finalItems.length > 0 && isMounted) {
-                            toast.info(`Memuat riwayat pemrosesan terakhir (${latestBatch.name})...`);
-                            const backendResults: ComparisonResult[] = finalItems.map(item => {
-                                return {
-                                    connote: item.connote,
-                                    recipientName: item.recipient_name || '',
-                                    systemAddress: item.system_address,
-                                    systemLat: item.system_lat || 0,
-                                    systemLng: item.system_lng || 0,
-                                    fieldLat: item.field_lat || 0,
-                                    fieldLng: item.field_lng || 0,
-                                    distanceMeters: item.distance_km ? item.distance_km * 1000 : 0,
-                                    category: (item.accuracy_level as any) || 'error',
-                                    geocodeStatus: item.error ? 'error' : item.geocode_status as any,
-                                };
-                            });
+                const latestBatch = batches[0];
+                if (latestBatch.status !== 'completed' && latestBatch.status !== 'failed') return;
 
-                            const sysRecs: SystemRecord[] = finalItems.map(item => ({
-                                connote: item.connote,
-                                recipientName: item.recipient_name || '',
-                                address: item.system_address,
-                                city: '',
-                                province: '',
-                                geocodeStatus: item.error ? 'error' : item.geocode_status as any,
-                            }));
+                const finalItems = await batchApi.getBatchResults(latestBatch.id);
+                if (finalItems.length === 0 || !isMounted) return;
 
-                            const fldRecs: FieldRecord[] = finalItems.filter(i => i.field_lat && i.field_lng).map(item => ({
-                                connote: item.connote,
-                                lat: item.field_lat || 0,
-                                lng: item.field_lng || 0,
-                                reportedBy: '',
-                                reportDate: '',
-                            }));
+                toast.info(`Memuat riwayat terakhir: ${latestBatch.name}`);
 
-                            // Load raw mock representation so that UI tables display properly without uploading files
-                            const mockSysRaw = finalItems.map(i => ({ connote: i.connote, recipient_name: i.recipient_name || '', address: i.system_address }));
-                            const mockFldRaw = finalItems.filter(i => i.field_lat && i.field_lng).map(i => ({ connote: i.connote, lat: String(i.field_lat), lng: String(i.field_lng) }));
+                const backendResults: ComparisonResult[] = finalItems.map(item => ({
+                    connote: item.connote,
+                    recipientName: item.recipient_name || '',
+                    systemAddress: item.system_address,
+                    systemLat: item.system_lat || 0,
+                    systemLng: item.system_lng || 0,
+                    fieldLat: item.field_lat || 0,
+                    fieldLng: item.field_lng || 0,
+                    distanceMeters: item.distance_km ? item.distance_km * 1000 : 0,
+                    category: (item.accuracy_level as any) || 'error',
+                    geocodeStatus: item.error ? 'error' : item.geocode_status as any,
+                }));
 
-                            if (mockSysRaw.length > 0) {
-                                setSystemColumns(Object.keys(mockSysRaw[0]));
-                                setSystemRawData(mockSysRaw);
-                            }
-                            if (mockFldRaw.length > 0) {
-                                setFieldColumns(Object.keys(mockFldRaw[0]));
-                                setFieldRawData(mockFldRaw as Record<string, string>[]);
-                            }
+                const sysRecs: SystemRecord[] = finalItems.map(item => ({
+                    connote: item.connote,
+                    recipientName: item.recipient_name || '',
+                    address: item.system_address,
+                    city: '',
+                    province: '',
+                    geocodeStatus: item.error ? 'error' : item.geocode_status as any,
+                }));
 
-                            setSystemRecords(sysRecs);
-                            setFieldRecords(fldRecs);
-                            setResults(backendResults);
-                        }
-                    }
+                const fldRecs: FieldRecord[] = finalItems
+                    .filter(i => i.field_lat && i.field_lng)
+                    .map(item => ({
+                        connote: item.connote,
+                        lat: item.field_lat || 0,
+                        lng: item.field_lng || 0,
+                        reportedBy: '',
+                        reportDate: '',
+                    }));
+
+                // Build mock raw representations so UI tables render correctly
+                // even when no new file has been uploaded in this session.
+                const mockSysRaw = finalItems.map(i => ({
+                    connote: i.connote,
+                    recipient_name: i.recipient_name || '',
+                    address: i.system_address,
+                }));
+                const mockFldRaw = finalItems
+                    .filter(i => i.field_lat && i.field_lng)
+                    .map(i => ({ connote: i.connote, lat: String(i.field_lat), lng: String(i.field_lng) }));
+
+                if (mockSysRaw.length > 0) {
+                    setSystemColumns(Object.keys(mockSysRaw[0]));
+                    setSystemRawData(mockSysRaw);
                 }
+                if (mockFldRaw.length > 0) {
+                    setFieldColumns(Object.keys(mockFldRaw[0]));
+                    setFieldRawData(mockFldRaw as Record<string, string>[]);
+                }
+
+                setSystemRecords(sysRecs);
+                setFieldRecords(fldRecs);
+                setResults(backendResults);
             } catch (err) {
-                console.error("Gagal memuat batch terakhir:", err);
+                console.error('Gagal memuat batch terakhir:', err);
             }
         };
 
         loadLatestBatch();
         return () => { isMounted = false; };
-    }, [user, isLoaded, setIsLoaded, setSystemRecords, setFieldRecords, setResults, setSystemColumns, setSystemRawData, setFieldColumns, setFieldRawData]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
 
     const handleSystemDataLoad = useCallback((data: Record<string, string>[]) => {
         if (data.length > 0) {
