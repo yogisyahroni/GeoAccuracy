@@ -16,6 +16,7 @@ export const useBatchWebSocket = (batchId: string | null) => {
     const [progress, setProgress] = useState<BatchProgress | null>(null);
     const [wsStatus, setWsStatus] = useState<'idle' | 'processing' | 'completed' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    // wsRef holds the active WebSocket so we never capture a stale closure instance.
     const wsRef = useRef<WebSocket | null>(null);
 
     const connect = useCallback(() => {
@@ -53,12 +54,16 @@ export const useBatchWebSocket = (batchId: string | null) => {
                     }
                     case 'completed':
                         setWsStatus('completed');
-                        setTimeout(() => ws.close(), 500);
+                        // FIX BUG-07: Use wsRef.current instead of the locally-captured `ws`.
+                        // If connect() is ever called again before this fires, `ws` would be a
+                        // stale reference pointing to the old, already-replaced WebSocket.
+                        setTimeout(() => wsRef.current?.close(), 500);
                         break;
                     case 'error':
                         setWsStatus('error');
                         setErrorMessage(typeof message.payload === 'string' ? message.payload : 'Processing error');
-                        ws.close();
+                        // FIX BUG-07: Same — use ref to close the current instance.
+                        wsRef.current?.close();
                         break;
                 }
             } catch (err) {
@@ -80,22 +85,35 @@ export const useBatchWebSocket = (batchId: string | null) => {
     }, [batchId]);
 
     useEffect(() => {
-        if (batchId && wsStatus === 'idle') {
+        // FIX BUG-08: Remove `wsStatus` from the dependency array.
+        // The original code had [batchId, wsStatus, connect] which caused this effect
+        // to re-evaluate every time wsStatus changed (e.g., idle → processing → completed).
+        // Because `connect` is memoised on batchId, the guard `wsStatus === 'idle'` was
+        // sufficient to stop reconnects — but having wsStatus as a dep caused spurious
+        // evaluations and potential double-connect edge cases on React StrictMode.
+        //
+        // Solution: track whether we have already connected with a ref so the guard is
+        // stable and independent of wsStatus state transitions.
+        if (batchId && wsRef.current === null) {
             connect();
         }
         return () => {
+            // Cleanup: close the WebSocket when batchId changes or component unmounts.
             if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
                 wsRef.current.close();
             }
         };
-    }, [batchId, wsStatus, connect]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [batchId, connect]);
 
     const reset = useCallback(() => {
-        if (wsRef.current) wsRef.current.close();
+        if (wsRef.current) {
+            wsRef.current.close();
+            wsRef.current = null;
+        }
         setProgress(null);
         setWsStatus('idle');
         setErrorMessage(null);
-        wsRef.current = null;
     }, []);
 
     return { progress, wsStatus, errorMessage, reset };

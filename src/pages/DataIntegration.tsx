@@ -151,6 +151,12 @@ export default function DataIntegration() {
     };
 
     const handlePreview = () => {
+        // FIX BUG-10: validate selectedDS before constructing pipeline.
+        // Without this guard, data_source_id: null was sent to the backend → 500 error.
+        if (!selectedDS) {
+            toast.error("Pilih koneksi database terlebih dahulu.");
+            return;
+        }
         if (!baseTable) {
             toast.error("Base table is required");
             return;
@@ -169,6 +175,11 @@ export default function DataIntegration() {
     };
 
     const handleRun = () => {
+        // FIX BUG-10: validate selectedDS before constructing pipeline.
+        if (!selectedDS) {
+            toast.error("Pilih koneksi database terlebih dahulu.");
+            return;
+        }
         if (!baseTable) {
             toast.error("Base table is required");
             return;

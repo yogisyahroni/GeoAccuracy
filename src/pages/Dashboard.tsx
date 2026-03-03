@@ -146,19 +146,28 @@ const Dashboard = () => {
         setProcessError(null);
     }, []);
 
-    const buildAddress = (sysRow: Record<string, string>, fieldRow: Record<string, string> | null, sys: SystemRecord): string => {
-        if (columnMappings.length > 0) {
-            const m = columnMappings[0];
-            const rowData = m.source === 'system' ? sysRow : (fieldRow || {});
-            const parts = [
-                m.col1 ? rowData[m.col1] : '',
-                m.col2 ? rowData[m.col2] : '',
-                m.col3 ? rowData[m.col3] : '',
-            ].filter(p => p && p.trim());
-            return parts.join(m.separator);
-        }
-        return `${sys.address}, ${sys.city}, ${sys.province}`;
-    };
+    // FIX BUG-09: Wrap buildAddress in useCallback with [columnMappings] as the
+    // dependency. The old implementation declared it as a plain arrow function
+    // inside the component body, meaning the useEffect that calls it had to
+    // suppress the exhaustive-deps lint rule with eslint-disable. That hid a real
+    // stale-closure bug: if columnMappings changed AFTER the effect was created
+    // but BEFORE it fired, the effect would use the old column mapping.
+    const buildAddress = useCallback(
+        (sysRow: Record<string, string>, fieldRow: Record<string, string> | null, sys: SystemRecord): string => {
+            if (columnMappings.length > 0) {
+                const m = columnMappings[0];
+                const rowData = m.source === 'system' ? sysRow : (fieldRow || {});
+                const parts = [
+                    m.col1 ? rowData[m.col1] : '',
+                    m.col2 ? rowData[m.col2] : '',
+                    m.col3 ? rowData[m.col3] : '',
+                ].filter(p => p && p.trim());
+                return parts.join(m.separator);
+            }
+            return `${sys.address}, ${sys.city}, ${sys.province}`;
+        },
+        [columnMappings],
+    );
 
     // Effect: when WebSocket reports 'completed', fetch final results
     useEffect(() => {
@@ -224,8 +233,9 @@ const Dashboard = () => {
         };
 
         fetchFinalResults();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [wsStatus, activeBatchId]);
+        // buildAddress is now stable (memoised with useCallback) so adding it here
+        // doesn't cause infinite re-renders. The eslint-disable is no longer needed.
+    }, [wsStatus, activeBatchId, buildAddress, systemRecords, fieldRecords, systemRawData, activeBatchId, resetWs]);
 
     // Effect: when WebSocket reports 'error'
     useEffect(() => {

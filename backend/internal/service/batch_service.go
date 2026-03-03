@@ -242,6 +242,20 @@ func (s *batchService) ProcessBatch(ctx context.Context, userID int64, batchID u
 			s.emitProgress(batchID.String(), i+1, total)
 		}
 
+		// FIX BUG-05: Guard before UpsertBatchItems — if every item was skipped
+		// (e.g. all system_address fields were empty), updatedItems is nil/empty.
+		// While the repository already has an empty-slice guard at the SQL level,
+		// calling UpsertBatchItems with zero items is a no-op that could still
+		// mark the batch as "completed" with 0 actual results on disk.
+		if len(updatedItems) == 0 {
+			log.Printf("WARN: ProcessBatch batch=%v produced 0 updatedItems — all records were skipped", batchID)
+			s.batchRepo.UpdateBatchStatus(bgCtx, batchID, domain.BatchStatusCompleted)
+			if s.hub != nil {
+				s.hub.Broadcast <- ws.Message{Type: "completed", BatchID: batchID.String(), Payload: "Batch completed (all records skipped due to empty addresses)"}
+			}
+			return
+		}
+
 		if err := s.batchRepo.UpsertBatchItems(bgCtx, updatedItems); err != nil {
 			s.batchRepo.UpdateBatchStatus(bgCtx, batchID, domain.BatchStatusFailed)
 			if s.hub != nil {

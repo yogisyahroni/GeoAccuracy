@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import { Upload, FileText, Info, ChevronDown, ChevronUp, Download, FileSpreadsheet } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import Papa from 'papaparse';
+
 
 interface DataUploadProps {
   onSystemDataLoad: (data: Record<string, string>[]) => void;
@@ -71,15 +73,23 @@ function downloadTemplate(tpl: typeof SYSTEM_TEMPLATE) {
 
 // ─── CSV parser ───────────────────────────────────────────────────────────────
 
+// FIX BUG-06: Replace naive line.split(',') with papaparse.
+// The old implementation broke on any field containing a comma (e.g. addresses
+// like "Jl. Ahmad, No. 5") causing silent data corruption. Papaparse is a
+// fully RFC 4180 compliant parser that correctly handles quoted fields,
+// embedded newlines, and escaped double-quotes.
 function parseCSV(text: string): Record<string, string>[] {
-  const lines = text.trim().split('\n');
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-  return lines.slice(1).map(line => {
-    const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-    const obj: Record<string, string> = {};
-    headers.forEach((h, i) => { obj[h] = values[i] ?? ''; });
-    return obj;
+  const result = Papa.parse<Record<string, string>>(text.trim(), {
+    header: true,         // use first row as column names
+    skipEmptyLines: true, // ignore blank trailing rows
+    // Trim each cell value; header key trimming done manually below.
+    transform: (value: string) => value.trim(),
+  });
+  // Normalise header keys by trimming whitespace (papaparse preserves raw names).
+  return result.data.map((row) => {
+    const normalised: Record<string, string> = {};
+    Object.entries(row).forEach(([k, v]) => { normalised[k.trim()] = v; });
+    return normalised;
   });
 }
 
