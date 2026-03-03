@@ -1,8 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Activity, RefreshCw, Info, AlertCircle } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { Activity, RefreshCw, Info, AlertCircle, Loader2 } from 'lucide-react';
 import { StatsCards } from '@/components/StatsCards';
 import { DataUpload } from '@/components/DataUpload';
 import { ComparisonTable } from '@/components/ComparisonTable';
@@ -10,7 +9,7 @@ import { AccuracyChart } from '@/components/AccuracyChart';
 import { DatabaseConnector } from '@/components/DatabaseConnector';
 import { AddressColumnMapper, ColumnMapping } from '@/components/AddressColumnMapper';
 import { ComparisonResult, DashboardStats, SystemRecord, FieldRecord } from '@/types/logistics';
-import { comparisonApi, batchApi, ApiError } from '@/lib/api';
+import { batchApi, ApiError } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useSessionState } from '@/hooks/useSessionState';
 import { useBatchWebSocket } from '@/hooks/useBatchWebSocket';
@@ -27,18 +26,18 @@ const Dashboard = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [processLog, setProcessLog] = useState('');
     const [processError, setProcessError] = useState<string | null>(null);
-    const [currentBatchId, setCurrentBatchId] = useState<string | null>(null);
-    const [localNoFieldResults, setLocalNoFieldResults] = useState<ComparisonResult[]>([]);
-
-    const { progress, status: wsStatus, errorMessage: wsError, reset: resetWs } = useBatchWebSocket(currentBatchId);
     const [systemRawData, setSystemRawData] = useSessionState<Record<string, string>[]>('dash_sysRaw', []);
     const [systemColumns, setSystemColumns] = useSessionState<string[]>('dash_sysCols', []);
     const [columnMappings, setColumnMappings] = useSessionState<ColumnMapping[]>('dash_colMaps', []);
     const [fieldRawData, setFieldRawData] = useSessionState<Record<string, string>[]>('dash_fldRaw', []);
     const [fieldColumns, setFieldColumns] = useSessionState<string[]>('dash_fldCols', []);
+    const [activeBatchId, setActiveBatchId] = useState<string | null>(null);
     // useRef is the correct tool for a one-shot guard: it won't trigger re-renders
     // and its value persists across renders without being part of the dependency array.
     const hasLoadedRef = useRef(false);
+
+    // Real-time WebSocket progress tracking
+    const { progress, wsStatus, errorMessage: wsError, reset: resetWs } = useBatchWebSocket(activeBatchId);
 
     const stats: DashboardStats = {
         total: results.length,
@@ -48,66 +47,6 @@ const Dashboard = () => {
         pending: results.filter(r => r.category === 'pending').length,
         error: results.filter(r => r.category === 'error').length,
     };
-
-    const fetchBatchResults = useCallback(async (batchId: string) => {
-        try {
-            setProcessLog('Mengambil hasil pemrosesan akhir...');
-            const finalItems = await batchApi.getBatchResults(batchId);
-
-            const backendResults: ComparisonResult[] = finalItems.map(item => {
-                const sys = systemRecords.find((s) => s.connote === item.connote);
-                return {
-                    connote: item.connote,
-                    recipientName: sys?.recipientName || item.recipient_name || '',
-                    systemAddress: item.system_address,
-                    systemLat: item.system_lat || 0,
-                    systemLng: item.system_lng || 0,
-                    fieldLat: item.field_lat || 0,
-                    fieldLng: item.field_lng || 0,
-                    distanceMeters: item.distance_km ? item.distance_km * 1000 : 0,
-                    category: (item.accuracy_level as any) || 'error',
-                    geocodeStatus: item.error ? 'error' : item.geocode_status as any,
-                };
-            });
-
-            setResults([...backendResults, ...localNoFieldResults]);
-            setProcessLog(`Selesai memproses ${finalItems.length} record.`);
-            toast.success(`Selesai memproses ${finalItems.length} record.`);
-
-            // Reset upload interface
-            setSystemRecords([]);
-            setFieldRecords([]);
-            setSystemRawData([]);
-            setSystemColumns([]);
-            setFieldRawData([]);
-            setFieldColumns([]);
-            setColumnMappings([]);
-            setLocalNoFieldResults([]);
-            setProcessLog('');
-            setCurrentBatchId(null);
-            resetWs();
-            setIsProcessing(false);
-        } catch (err) {
-            console.error(err);
-            setProcessError('Gagal mengambil hasil akhir dari server.');
-            toast.error('Gagal memuat hasil akhir.');
-            setIsProcessing(false);
-            setCurrentBatchId(null);
-            resetWs();
-        }
-    }, [systemRecords, localNoFieldResults, setResults, setSystemRecords, setFieldRecords, setSystemRawData, setSystemColumns, setFieldRawData, setFieldColumns, setColumnMappings, resetWs]);
-
-    useEffect(() => {
-        if (wsStatus === 'completed' && currentBatchId) {
-            fetchBatchResults(currentBatchId);
-        } else if (wsStatus === 'error') {
-            setProcessError(`WebSocket Error: ${wsError}`);
-            toast.error('Gagal diproses karena kesalahan server (WebSocket)');
-            setIsProcessing(false);
-            setCurrentBatchId(null);
-            resetWs();
-        }
-    }, [wsStatus, currentBatchId, wsError, fetchBatchResults]);
 
     // Auto-load latest batch from the Enterprise PostgreSQL backend.
     // Using useRef as guard (not state) so that:
@@ -221,11 +160,89 @@ const Dashboard = () => {
         return `${sys.address}, ${sys.city}, ${sys.province}`;
     };
 
+    // Effect: when WebSocket reports 'completed', fetch final results
+    useEffect(() => {
+        if (wsStatus !== 'completed' || !activeBatchId) return;
+
+        const fetchFinalResults = async () => {
+            try {
+                setProcessLog('Mengambil hasil pemrosesan...');
+                const finalItems = await batchApi.getBatchResults(activeBatchId);
+
+                const noFieldMap = new Map<string, ComparisonResult>();
+                systemRecords
+                    .filter(sys => !fieldRecords.find(f => f.connote === sys.connote))
+                    .forEach(sys => {
+                        const rawDataMap = new Map<string, Record<string, string>>();
+                        systemRawData.forEach(row => {
+                            const c = (row.connote || row.Connote || row.CONNOTE || '').toUpperCase().trim();
+                            if (c) rawDataMap.set(c, row);
+                        });
+                        noFieldMap.set(sys.connote, {
+                            connote: sys.connote,
+                            recipientName: sys.recipientName,
+                            systemAddress: buildAddress(rawDataMap.get(sys.connote) ?? {}, null, sys),
+                            category: 'error' as const,
+                            geocodeStatus: 'error' as const,
+                        });
+                    });
+
+                const backendResults: ComparisonResult[] = finalItems.map(item => {
+                    const sys = systemRecords.find(s => s.connote === item.connote);
+                    return {
+                        connote: item.connote,
+                        recipientName: sys?.recipientName || item.recipient_name || '',
+                        systemAddress: item.system_address,
+                        systemLat: item.system_lat || 0,
+                        systemLng: item.system_lng || 0,
+                        fieldLat: item.field_lat || 0,
+                        fieldLng: item.field_lng || 0,
+                        distanceMeters: item.distance_km ? item.distance_km * 1000 : 0,
+                        category: (item.accuracy_level as any) || 'error',
+                        geocodeStatus: item.error ? 'error' : item.geocode_status as any,
+                    };
+                });
+
+                setResults([...backendResults, ...Array.from(noFieldMap.values())]);
+                toast.success(`Selesai! ${finalItems.length} record diproses.`);
+                setProcessLog('');
+            } catch (err) {
+                console.error('Gagal mengambil hasil batch:', err);
+                toast.error('Gagal mengambil hasil. Coba muat ulang halaman.');
+            } finally {
+                setIsProcessing(false);
+                setActiveBatchId(null);
+                resetWs();
+                setSystemRecords([]);
+                setFieldRecords([]);
+                setSystemRawData([]);
+                setSystemColumns([]);
+                setFieldRawData([]);
+                setFieldColumns([]);
+                setColumnMappings([]);
+            }
+        };
+
+        fetchFinalResults();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [wsStatus, activeBatchId]);
+
+    // Effect: when WebSocket reports 'error'
+    useEffect(() => {
+        if (wsStatus !== 'error') return;
+        setProcessError(wsError || 'Terjadi kesalahan pada proses geocoding.');
+        toast.error(wsError || 'Terjadi kesalahan pada proses geocoding.');
+        setIsProcessing(false);
+        setActiveBatchId(null);
+        resetWs();
+    }, [wsStatus, wsError]);
+
     const handleProcess = async () => {
         if (systemRecords.length === 0 || fieldRecords.length === 0) return;
 
         setIsProcessing(true);
         setProcessError(null);
+        resetWs();
         setProcessLog('Mengirim data ke backend...');
 
         const fieldMap = new Map<string, FieldRecord>();
@@ -243,7 +260,6 @@ const Dashboard = () => {
             if (connote) rawDataMap.set(connote, row);
         });
 
-        // Prepare System Records with built addresses
         const systemPayload = systemRecords.map(sys => {
             const sysRawRow = rawDataMap.get(sys.connote) ?? {};
             const fieldRawRow = fieldRawMap.get(sys.connote) ?? null;
@@ -254,7 +270,6 @@ const Dashboard = () => {
             };
         });
 
-        // Prepare Field Records
         const fieldPayload = fieldRecords.map(fld => ({
             connote: fld.connote,
             field_lat: fld.lat,
@@ -262,16 +277,6 @@ const Dashboard = () => {
             reported_by: fld.reportedBy || '',
             report_date: fld.reportDate || '',
         }));
-
-        const noFieldResults: ComparisonResult[] = systemRecords
-            .filter(sys => !fieldMap.has(sys.connote))
-            .map(sys => ({
-                connote: sys.connote,
-                recipientName: sys.recipientName,
-                systemAddress: buildAddress(rawDataMap.get(sys.connote) ?? {}, null, sys),
-                category: 'error' as const,
-                geocodeStatus: 'error' as const,
-            }));
 
         try {
             setProcessLog('Membuat Batch baru...');
@@ -284,13 +289,13 @@ const Dashboard = () => {
             setProcessLog('Mengunggah data lapangan...');
             await batchApi.uploadFieldData(batch.id, fieldPayload);
 
-            setProcessLog(`Memproses geocoding via WebSockets...`);
-            setLocalNoFieldResults(noFieldResults);
-            setCurrentBatchId(batch.id);
+            // Trigger async processing — backend returns 202 immediately.
+            // WebSocket hook will take over and report real-time progress.
+            setProcessLog('Geocoding dimulai...');
             await batchApi.processBatch(batch.id);
 
-            // Wait for WebSocket to signal completion.
-            // DO NOT reset isProcessing here.
+            // Activate WebSocket connection for this batch
+            setActiveBatchId(batch.id);
         } catch (err) {
             if (err instanceof ApiError) {
                 if (err.status === 0) {
@@ -310,7 +315,6 @@ const Dashboard = () => {
                 setProcessError(msg);
                 toast.error(msg);
             }
-        } finally {
             setIsProcessing(false);
         }
     };
@@ -326,9 +330,9 @@ const Dashboard = () => {
         setColumnMappings([]);
         setFieldRawData([]);
         setFieldColumns([]);
-        setCurrentBatchId(null);
-        setLocalNoFieldResults([]);
+        setActiveBatchId(null);
         resetWs();
+        setIsProcessing(false);
     };
 
     const canProcess = systemRecords.length > 0 && fieldRecords.length > 0 && !isProcessing;
@@ -400,81 +404,89 @@ const Dashboard = () => {
 
             {/* Process + Reset Buttons */}
             {(systemRecords.length > 0 || fieldRecords.length > 0) && (
-                <div className="space-y-4">
-                    <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4">
+                    <button
+                        onClick={handleProcess}
+                        disabled={!canProcess}
+                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 active:scale-[0.98]"
+                        style={{
+                            background: canProcess ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
+                            color: canProcess ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
+                            boxShadow: canProcess ? '0 0 20px hsl(var(--primary) / 0.3)' : 'none',
+                        }}
+                    >
+                        {isProcessing ? (
+                            <><RefreshCw className="w-4 h-4 animate-spin" />Memproses...</>
+                        ) : (
+                            <><Activity className="w-4 h-4" />Proses &amp; Bandingkan</>
+                        )}
+                    </button>
+
+                    {(results.length > 0 || systemRecords.length > 0) && (
                         <button
-                            onClick={handleProcess}
-                            disabled={!canProcess}
-                            className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 active:scale-[0.98]"
-                            style={{
-                                background: canProcess ? 'hsl(var(--primary))' : 'hsl(var(--muted))',
-                                color: canProcess ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted-foreground))',
-                                boxShadow: canProcess ? '0 0 20px hsl(var(--primary) / 0.3)' : 'none',
-                            }}
+                            onClick={handleReset}
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border transition-all hover:brightness-110 active:scale-[0.98]"
+                            style={{ color: 'hsl(var(--muted-foreground))' }}
                         >
-                            {isProcessing ? (
-                                <><RefreshCw className="w-4 h-4 animate-spin" />Memproses...</>
-                            ) : (
-                                <><Activity className="w-4 h-4" />Proses &amp; Bandingkan</>
-                            )}
+                            <RefreshCw className="w-3.5 h-3.5" />Reset
                         </button>
+                    )}
 
-                        {(results.length > 0 || systemRecords.length > 0) && (
-                            <button
-                                onClick={handleReset}
-                                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border transition-all hover:brightness-110 active:scale-[0.98]"
-                                style={{ color: 'hsl(var(--muted-foreground))' }}
-                            >
-                                <RefreshCw className="w-3.5 h-3.5" />Reset
-                            </button>
-                        )}
+                    {processLog && !processError && (
+                        <span className="text-xs font-mono" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                            {processLog}
+                        </span>
+                    )}
+                    {!canProcess && !isProcessing && (
+                        <span className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                            {systemRecords.length === 0 && '⬆ Upload data sistem'}
+                            {systemRecords.length > 0 && fieldRecords.length === 0 && '⬆ Upload data lapangan'}
+                        </span>
+                    )}
+                </div>
+            )}
 
-                        {processLog && !processError && (
-                            <span className="text-xs font-mono" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                                {processLog}
+            {/* Real-time WebSocket Progress Bar */}
+            {isProcessing && activeBatchId && (
+                <div
+                    className="rounded-xl border p-5 space-y-3"
+                    style={{ background: 'hsl(var(--card))', borderColor: 'hsl(var(--primary) / 0.3)' }}
+                >
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'hsl(var(--primary))' }} />
+                            <span className="text-sm font-medium" style={{ color: 'hsl(var(--foreground))' }}>
+                                {progress ? `Memproses alamat...` : (processLog || 'Menginisialisasi...')}
                             </span>
-                        )}
-                        {!canProcess && !isProcessing && (
-                            <span className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
-                                {systemRecords.length === 0 && '⬆ Upload data sistem'}
-                                {systemRecords.length > 0 && fieldRecords.length === 0 && '⬆ Upload data lapangan'}
+                        </div>
+                        {progress && (
+                            <span className="text-xs font-mono" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                                {progress.processed} / {progress.total} alamat
                             </span>
                         )}
                     </div>
 
-                    {/* WebSocket Progress Animation */}
-                    <AnimatePresence>
-                        {isProcessing && currentBatchId && (
-                            <motion.div
-                                initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                                animate={{ opacity: 1, height: 'auto', marginTop: 16 }}
-                                exit={{ opacity: 0, height: 0, marginTop: 0, overflow: 'hidden' }}
-                                className="w-full bg-card border border-border rounded-xl p-5 shadow-sm overflow-hidden"
-                            >
-                                <div className="flex justify-between items-end mb-3">
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-semibold tracking-tight text-foreground">
-                                            Memproses Geocoding & Komparasi...
-                                        </p>
-                                        <p className="text-xs text-muted-foreground font-mono">
-                                            {progress ? `${progress.processed} / ${progress.total} Alamat Lapangan` : 'Menghubungkan live tracking...'}
-                                        </p>
-                                    </div>
-                                    <span className="text-sm font-mono font-medium" style={{ color: 'hsl(var(--primary))' }}>
-                                        {progress?.percentage.toFixed(0) ?? 0}%
-                                    </span>
-                                </div>
-                                <div className="h-2.5 w-full rounded-full overflow-hidden" style={{ background: 'hsl(var(--secondary))' }}>
-                                    <motion.div
-                                        className="h-full rounded-full transition-all duration-300 ease-out"
-                                        style={{ background: 'hsl(var(--primary))' }}
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${progress?.percentage ?? 0}%` }}
-                                    />
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                    {/* Animated Progress Bar */}
+                    <div
+                        className="w-full rounded-full overflow-hidden"
+                        style={{ height: '8px', background: 'hsl(var(--muted))' }}
+                    >
+                        <div
+                            className="h-full rounded-full transition-all duration-500 ease-out"
+                            style={{
+                                width: `${progress?.percentage ?? 0}%`,
+                                background: 'linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))',
+                                boxShadow: '0 0 8px hsl(var(--primary) / 0.5)',
+                                minWidth: progress ? '2%' : '0%',
+                            }}
+                        />
+                    </div>
+
+                    {progress && (
+                        <p className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                            {progress.percentage}% selesai — harap tunggu, proses geocoding sedang berjalan...
+                        </p>
+                    )}
                 </div>
             )}
 
