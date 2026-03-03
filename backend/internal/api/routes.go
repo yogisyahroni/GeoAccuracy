@@ -82,6 +82,8 @@ func SetupRouter(
 
 				editorGroup.POST("/datasources", dsHandler.Create)
 				editorGroup.POST("/datasources/test", dsHandler.TestConnection)
+				editorGroup.POST("/pipelines/preview", dsHandler.PreviewPipeline) // FIX: was missing
+				editorGroup.POST("/pipelines/run", dsHandler.RunPipeline)         // FIX: was missing
 				editorGroup.POST("/pipelines", dsHandler.SavePipeline)
 				editorGroup.DELETE("/pipelines/:id", dsHandler.DeletePipeline)
 				editorGroup.POST("/pipelines/:id/run", dsHandler.RunPipeline)

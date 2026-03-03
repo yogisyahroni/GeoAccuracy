@@ -21,7 +21,7 @@ export const useBatchWebSocket = (batchId: string | null) => {
     const connect = useCallback(() => {
         if (!batchId) return;
 
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('geoaccuracy_token');
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = (import.meta as any).env?.VITE_API_URL
             ? (import.meta as any).env.VITE_API_URL.replace(/^https?:\/\//, '')
