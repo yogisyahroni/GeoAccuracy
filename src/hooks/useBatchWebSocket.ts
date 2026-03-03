@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 export interface WebSocketMessage {
     batch_id: string;
-    type: 'progress' | 'completed' | 'error';
+    type: 'progress' | 'completed' | 'error' | 'auth_ok';
     payload: any;
 }
 
@@ -16,7 +16,6 @@ export const useBatchWebSocket = (batchId: string | null) => {
     const [progress, setProgress] = useState<BatchProgress | null>(null);
     const [wsStatus, setWsStatus] = useState<'idle' | 'processing' | 'completed' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    // wsRef holds the active WebSocket so we never capture a stale closure instance.
     const wsRef = useRef<WebSocket | null>(null);
 
     const connect = useCallback(() => {
@@ -28,21 +27,39 @@ export const useBatchWebSocket = (batchId: string | null) => {
             ? (import.meta as any).env.VITE_API_URL.replace(/^https?:\/\//, '')
             : 'localhost:8080';
 
-        const wsUrl = `${protocol}//${host}/api/ws/batches/${batchId}?token=${token}`;
+        // FIX BUG-11: Token is NO LONGER included in the URL query string.
+        // Previously: /api/ws/batches/:id?token=<jwt>
+        // The JWT appeared in server access logs (Render logs), browser history,
+        // DevTools Network tab, and any proxy between frontend and backend.
+        //
+        // New approach: First-message authentication.
+        // 1. Connect to the clean URL (no token).
+        // 2. On onopen, send {"type":"auth","token":"<jwt>"} as the first WebSocket frame.
+        // 3. Backend validates synchronously within a 10-second deadline.
+        // 4. Backend replies with {"type":"auth_ok"} → we start receiving progress events.
+        // The JWT is now transmitted only inside an encrypted WebSocket frame body.
+        const wsUrl = `${protocol}//${host}/api/ws/batches/${batchId}`;
         console.log(`[WebSocket] Connecting to ${wsUrl}...`);
 
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 
         ws.onopen = () => {
-            console.log(`[WebSocket] Connected for batch ${batchId}`);
-            setWsStatus('processing');
+            console.log(`[WebSocket] Connected for batch ${batchId}, sending auth...`);
+            // Immediately send auth frame — server expects this within 10 seconds.
+            ws.send(JSON.stringify({ type: 'auth', token }));
+            // Keep wsStatus 'idle' until we receive auth_ok to avoid premature UI updates.
         };
 
         ws.onmessage = (event) => {
             try {
                 const message: WebSocketMessage = JSON.parse(event.data);
                 switch (message.type) {
+                    case 'auth_ok':
+                        // Backend confirmed auth — now we're live and will receive progress.
+                        console.log(`[WebSocket] Auth OK for batch ${batchId}`);
+                        setWsStatus('processing');
+                        break;
                     case 'progress': {
                         const { processed, total } = message.payload;
                         setProgress({
@@ -54,15 +71,13 @@ export const useBatchWebSocket = (batchId: string | null) => {
                     }
                     case 'completed':
                         setWsStatus('completed');
-                        // FIX BUG-07: Use wsRef.current instead of the locally-captured `ws`.
-                        // If connect() is ever called again before this fires, `ws` would be a
-                        // stale reference pointing to the old, already-replaced WebSocket.
+                        // FIX BUG-07: Use wsRef.current to avoid stale closure.
                         setTimeout(() => wsRef.current?.close(), 500);
                         break;
                     case 'error':
                         setWsStatus('error');
                         setErrorMessage(typeof message.payload === 'string' ? message.payload : 'Processing error');
-                        // FIX BUG-07: Same — use ref to close the current instance.
+                        // FIX BUG-07: Use wsRef.current to avoid stale closure.
                         wsRef.current?.close();
                         break;
                 }
@@ -77,28 +92,25 @@ export const useBatchWebSocket = (batchId: string | null) => {
             setErrorMessage('WebSocket connection failed');
         };
 
-        ws.onclose = () => {
-            console.log(`[WebSocket] Disconnected for batch ${batchId}`);
+        ws.onclose = (event) => {
+            console.log(`[WebSocket] Disconnected for batch ${batchId} (code: ${event.code})`);
+            // If server closed with policy violation it's an auth failure.
+            if (event.code === 1008) {
+                setWsStatus('error');
+                setErrorMessage('WebSocket authentication failed. Please log in again.');
+            }
         };
 
         return ws;
     }, [batchId]);
 
     useEffect(() => {
-        // FIX BUG-08: Remove `wsStatus` from the dependency array.
-        // The original code had [batchId, wsStatus, connect] which caused this effect
-        // to re-evaluate every time wsStatus changed (e.g., idle → processing → completed).
-        // Because `connect` is memoised on batchId, the guard `wsStatus === 'idle'` was
-        // sufficient to stop reconnects — but having wsStatus as a dep caused spurious
-        // evaluations and potential double-connect edge cases on React StrictMode.
-        //
-        // Solution: track whether we have already connected with a ref so the guard is
-        // stable and independent of wsStatus state transitions.
+        // FIX BUG-08: Guard with wsRef.current === null (not wsStatus === 'idle')
+        // to prevent reconnect loops on every status transition.
         if (batchId && wsRef.current === null) {
             connect();
         }
         return () => {
-            // Cleanup: close the WebSocket when batchId changes or component unmounts.
             if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
                 wsRef.current.close();
             }

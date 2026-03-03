@@ -6,6 +6,8 @@ import { Toaster } from '@/components/ui/sonner';
 import { useAuthStore } from '@/store/useAuthStore';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { AppShell } from '@/components/layout/AppShell';
+// FIX BUG-12: Import ErrorBoundary to prevent "White Screen of Death" on render errors.
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -39,13 +41,69 @@ function AppRoutes() {
 
       {/* Protected — all inside AppShell */}
       <Route element={<AppShell />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/history" element={<HistoryPage />} />
-        <Route path="/analytics" element={<AnalyticsPage />} />
-        <Route path="/advanced-analytics" element={<AdvancedAnalyticsPage />} />
-        <Route path="/integration" element={<DataIntegrationPage />} />
-        <Route path="/areas" element={<AreasPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        {/*
+          FIX BUG-12: Each protected page is wrapped in its own <ErrorBoundary>.
+          Without this, any uncaught JavaScript error in a page's render cycle
+          tears down the ENTIRE React tree and shows a blank white page in production.
+          With per-page boundaries, only the crashing page shows a recovery UI;
+          the sidebar navigation and header remain usable.
+        */}
+        <Route
+          path="/"
+          element={
+            <ErrorBoundary sectionLabel="Dashboard">
+              <Dashboard />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/history"
+          element={
+            <ErrorBoundary sectionLabel="Riwayat">
+              <HistoryPage />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/analytics"
+          element={
+            <ErrorBoundary sectionLabel="Analytics">
+              <AnalyticsPage />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/advanced-analytics"
+          element={
+            <ErrorBoundary sectionLabel="Advanced Analytics">
+              <AdvancedAnalyticsPage />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/integration"
+          element={
+            <ErrorBoundary sectionLabel="Data Integration">
+              <DataIntegrationPage />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/areas"
+          element={
+            <ErrorBoundary sectionLabel="Area Management">
+              <AreasPage />
+            </ErrorBoundary>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ErrorBoundary sectionLabel="Pengaturan">
+              <SettingsPage />
+            </ErrorBoundary>
+          }
+        />
       </Route>
 
       {/* Fallback */}
@@ -58,7 +116,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AppRoutes />
+        {/*
+          Top-level boundary as a last resort — catches any error outside page routes
+          (e.g. in AppShell itself or the routing layer).
+        */}
+        <ErrorBoundary sectionLabel="aplikasi">
+          <AppRoutes />
+        </ErrorBoundary>
         <Toaster position="top-right" richColors />
       </BrowserRouter>
     </QueryClientProvider>
