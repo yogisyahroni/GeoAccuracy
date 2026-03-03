@@ -17,6 +17,7 @@ import (
 	"geoaccuracy-backend/internal/db"
 	"geoaccuracy-backend/internal/repository"
 	"geoaccuracy-backend/internal/service"
+	ws "geoaccuracy-backend/internal/websocket"
 )
 
 func main() {
@@ -45,11 +46,14 @@ func main() {
 	analyticsRepo := repository.NewAnalyticsRepository(sqlxDB)
 
 	// 4. Setup Services
+	hub := ws.NewHub()
+	go hub.Run()
+
 	authSvc := service.NewAuthService(userRepo, cfg)
 	geoSvc := service.NewGeocodeService(geoRepo, settingsRepo)
 	historySvc := service.NewHistoryService(historyRepo)
 	compSvc := service.NewComparisonService(geoSvc, historySvc)
-	batchSvc := service.NewBatchService(batchRepo, geoSvc, historySvc, analyticsRepo)
+	batchSvc := service.NewBatchService(batchRepo, geoSvc, historySvc, analyticsRepo, hub)
 	settingsSvc := service.NewSettingsService(settingsRepo)
 	dsSvc := service.NewDataSourceService(dsRepo, cfg)
 	etlSvc := service.NewETLService(dsRepo, cfg)
@@ -85,9 +89,10 @@ func main() {
 	analyticsHandler := handlers.NewAnalyticsHandler(analyticsRepo)
 	erpHandler := handlers.NewErpIntegrationHandler(erpSvc)
 	batchHandler := handlers.NewBatchHandler(batchSvc)
+	wsHandler := handlers.NewWSHandler(hub, cfg)
 
-	// 6. Setup Router
-	router := api.SetupRouter(cfg, authHandler, geoHandler, compHandler, settingsHandler, historyHandler, dsHandler, areaHandler, webhookHandler, analyticsHandler, erpHandler, batchHandler, webhookRepo)
+	// 7. Setup Router
+	router := api.SetupRouter(cfg, authHandler, geoHandler, compHandler, settingsHandler, historyHandler, dsHandler, areaHandler, webhookHandler, analyticsHandler, erpHandler, batchHandler, wsHandler, webhookRepo)
 
 	// 7. Start Server with Graceful Shutdown
 	srv := &http.Server{

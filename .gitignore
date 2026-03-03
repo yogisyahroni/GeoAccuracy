@@ -30,3 +30,7 @@ dist-ssr
 backend/.env
 backend/.env.local
 backend/.env.production
+
+# Test Coverage & Reports
+coverage/
+backend/coverage.out

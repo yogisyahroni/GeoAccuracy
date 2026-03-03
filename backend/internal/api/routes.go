@@ -23,6 +23,7 @@ func SetupRouter(
 	analyticsHandler *handlers.AnalyticsHandler,
 	erpHandler *handlers.ErpIntegrationHandler,
 	batchHandler *handlers.BatchHandler,
+	wsHandler *handlers.WSHandler,
 	webhookRepo domain.WebhookRepository,
 ) *gin.Engine {
 
@@ -102,6 +103,8 @@ func SetupRouter(
 				editorGroup.POST("/batches/:id/system-data", batchHandler.UploadSystemData)
 				editorGroup.POST("/batches/:id/field-data", batchHandler.UploadFieldData)
 				editorGroup.POST("/batches/:id/process", batchHandler.ProcessBatch)
+
+				editorGroup.GET("/ws/batches/:id", wsHandler.HandleBatchWS)
 			}
 
 			// ── Admin Only Access (Global Settings) ──

@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	ws "geoaccuracy-backend/internal/websocket"
 )
 
 type batchService struct {
@@ -16,14 +18,16 @@ type batchService struct {
 	geoService     GeocodeService
 	historyService *HistoryService
 	analyticsRepo  domain.AnalyticsRepository // for courier_performance population
+	hub            *ws.Hub
 }
 
-func NewBatchService(repo domain.BatchRepository, geoService GeocodeService, historySvc *HistoryService, analyticsRepo domain.AnalyticsRepository) domain.BatchService {
+func NewBatchService(repo domain.BatchRepository, geoService GeocodeService, historySvc *HistoryService, analyticsRepo domain.AnalyticsRepository, hub *ws.Hub) domain.BatchService {
 	return &batchService{
 		batchRepo:      repo,
 		geoService:     geoService,
 		historyService: historySvc,
 		analyticsRepo:  analyticsRepo,
+		hub:            hub,
 	}
 }
 
@@ -85,123 +89,141 @@ func (s *batchService) ProcessBatch(ctx context.Context, userID int64, batchID u
 		return err
 	}
 
-	items, err := s.batchRepo.GetBatchItemsByBatchID(ctx, batchID)
-	if err != nil {
-		s.batchRepo.UpdateBatchStatus(ctx, batchID, domain.BatchStatusFailed)
-		return err
-	}
+	// Run processing asynchronously so HTTP request can return immediately
+	go func() {
+		// Create a separate background context so HTTP cancellation doesn't stop processing
+		bgCtx := context.Background()
 
-	var results []domain.ValidationResult
-	var updatedItems []domain.BatchItem
-	var courierEvents []domain.CourierPerformance
-
-	// IN-MEMORY CACHE FOR BATCH (Best practice for thousands of identical addresses)
-	memCache := make(map[string]*domain.GeocodeResponse)
-
-	for _, item := range items {
-		if item.SystemAddress == "" {
-			continue
-		}
-
-		normalizeAddr := strings.ToLower(strings.TrimSpace(item.SystemAddress))
-		var geoRes *domain.GeocodeResponse
-		var geoErr error
-
-		if cachedRes, ok := memCache[normalizeAddr]; ok {
-			geoRes = cachedRes
-		} else {
-			geoRes, geoErr = s.geoService.GeocodeAddress(ctx, int(userID), item.SystemAddress)
-			if geoErr == nil {
-				memCache[normalizeAddr] = geoRes
+		items, err := s.batchRepo.GetBatchItemsByBatchID(bgCtx, batchID)
+		if err != nil {
+			s.batchRepo.UpdateBatchStatus(bgCtx, batchID, domain.BatchStatusFailed)
+			if s.hub != nil {
+				s.hub.Broadcast <- ws.Message{Type: "error", BatchID: batchID.String(), Payload: err.Error()}
 			}
+			return
 		}
 
-		outItem := domain.BatchItem{
-			ID:        item.ID,
-			BatchID:   item.BatchID,
-			Connote:   item.Connote,
-			CourierID: item.CourierID,
-		}
+		total := len(items)
+		var results []domain.ValidationResult
+		var updatedItems []domain.BatchItem
+		var courierEvents []domain.CourierPerformance
 
-		if geoErr != nil {
-			outItem.Error = geoErr.Error()
-			outItem.GeocodeStatus = "failed"
+		// IN-MEMORY CACHE FOR BATCH (Best practice for thousands of identical addresses)
+		memCache := make(map[string]*domain.GeocodeResponse)
 
-			// Still record the courier event as an error
-			if item.CourierID != "" && s.analyticsRepo != nil {
-				dist := 0.0
-				courierEvents = append(courierEvents, domain.CourierPerformance{
-					UserID:                 userID,
-					BatchID:                batchID.String(),
-					CourierID:              item.CourierID,
-					OrderID:                item.Connote,
-					ReportedLat:            safeFloat(item.FieldLat),
-					ReportedLng:            safeFloat(item.FieldLng),
-					DistanceVarianceMeters: &dist,
-					AccuracyStatus:         "error",
-					SLAStatus:              "unknown",
-					EventTimestamp:         time.Now(),
-				})
+		for i, item := range items {
+			if item.SystemAddress == "" {
+				s.emitProgress(batchID.String(), i+1, total)
+				continue
 			}
-		} else {
-			sysLat := geoRes.Lat
-			sysLng := geoRes.Lng
-			outItem.SystemLat = &sysLat
-			outItem.SystemLng = &sysLng
-			outItem.GeocodeStatus = "completed"
 
-			if item.FieldLat != nil && item.FieldLng != nil {
-				dist := utils.CalculateDistance(sysLat, sysLng, *item.FieldLat, *item.FieldLng)
-				accuracy := utils.EvaluateAccuracy(dist)
+			normalizeAddr := strings.ToLower(strings.TrimSpace(item.SystemAddress))
+			var geoRes *domain.GeocodeResponse
+			var geoErr error
 
-				outItem.DistanceKm = &dist
-				outItem.AccuracyLevel = accuracy
+			if cachedRes, ok := memCache[normalizeAddr]; ok {
+				geoRes = cachedRes
+			} else {
+				geoRes, geoErr = s.geoService.GeocodeAddress(bgCtx, int(userID), item.SystemAddress)
+				if geoErr == nil {
+					memCache[normalizeAddr] = geoRes
+				}
+			}
 
-				results = append(results, domain.ValidationResult{
-					SystemAddress: item.SystemAddress,
-					GeoLat:        sysLat,
-					GeoLng:        sysLng,
-					FieldLat:      *item.FieldLat,
-					FieldLng:      *item.FieldLng,
-					DistanceKm:    dist,
-					AccuracyLevel: accuracy,
-					Provider:      geoRes.Provider,
-				})
+			outItem := domain.BatchItem{
+				ID:        item.ID,
+				BatchID:   item.BatchID,
+				Connote:   item.Connote,
+				CourierID: item.CourierID,
+			}
 
-				// Build courier performance event if courier is identified
+			if geoErr != nil {
+				outItem.Error = geoErr.Error()
+				outItem.GeocodeStatus = "failed"
+
+				// Still record the courier event as an error
 				if item.CourierID != "" && s.analyticsRepo != nil {
-					distMeters := dist * 1000
-					slaStatus := "on_time" // default — extend later with delivery date logic
+					dist := 0.0
 					courierEvents = append(courierEvents, domain.CourierPerformance{
 						UserID:                 userID,
 						BatchID:                batchID.String(),
 						CourierID:              item.CourierID,
 						OrderID:                item.Connote,
-						ReportedLat:            *item.FieldLat,
-						ReportedLng:            *item.FieldLng,
-						ActualLat:              &sysLat,
-						ActualLng:              &sysLng,
-						DistanceVarianceMeters: &distMeters,
-						AccuracyStatus:         accuracy,
-						SLAStatus:              slaStatus,
+						ReportedLat:            safeFloat(item.FieldLat),
+						ReportedLng:            safeFloat(item.FieldLng),
+						DistanceVarianceMeters: &dist,
+						AccuracyStatus:         "error",
+						SLAStatus:              "unknown",
 						EventTimestamp:         time.Now(),
 					})
 				}
+			} else {
+				sysLat := geoRes.Lat
+				sysLng := geoRes.Lng
+				outItem.SystemLat = &sysLat
+				outItem.SystemLng = &sysLng
+				outItem.GeocodeStatus = "completed"
+
+				if item.FieldLat != nil && item.FieldLng != nil {
+					dist := utils.CalculateDistance(sysLat, sysLng, *item.FieldLat, *item.FieldLng)
+					accuracy := utils.EvaluateAccuracy(dist)
+
+					outItem.DistanceKm = &dist
+					outItem.AccuracyLevel = accuracy
+
+					results = append(results, domain.ValidationResult{
+						SystemAddress: item.SystemAddress,
+						GeoLat:        sysLat,
+						GeoLng:        sysLng,
+						FieldLat:      *item.FieldLat,
+						FieldLng:      *item.FieldLng,
+						DistanceKm:    dist,
+						AccuracyLevel: accuracy,
+						Provider:      geoRes.Provider,
+					})
+
+					// Build courier performance event if courier is identified
+					if item.CourierID != "" && s.analyticsRepo != nil {
+						distMeters := dist * 1000
+						slaStatus := "on_time" // default — extend later with delivery date logic
+						courierEvents = append(courierEvents, domain.CourierPerformance{
+							UserID:                 userID,
+							BatchID:                batchID.String(),
+							CourierID:              item.CourierID,
+							OrderID:                item.Connote,
+							ReportedLat:            *item.FieldLat,
+							ReportedLng:            *item.FieldLng,
+							ActualLat:              &sysLat,
+							ActualLng:              &sysLng,
+							DistanceVarianceMeters: &distMeters,
+							AccuracyStatus:         accuracy,
+							SLAStatus:              slaStatus,
+							EventTimestamp:         time.Now(),
+						})
+					}
+				}
 			}
+
+			updatedItems = append(updatedItems, outItem)
+
+			// Emit progress immediately after processing this item
+			s.emitProgress(batchID.String(), i+1, total)
 		}
 
-		updatedItems = append(updatedItems, outItem)
-	}
+		if err := s.batchRepo.UpsertBatchItems(bgCtx, updatedItems); err != nil {
+			s.batchRepo.UpdateBatchStatus(bgCtx, batchID, domain.BatchStatusFailed)
+			if s.hub != nil {
+				s.hub.Broadcast <- ws.Message{Type: "error", BatchID: batchID.String(), Payload: "Database error during save"}
+			}
+			return
+		}
 
-	if err := s.batchRepo.UpsertBatchItems(ctx, updatedItems); err != nil {
-		s.batchRepo.UpdateBatchStatus(ctx, batchID, domain.BatchStatusFailed)
-		return err
-	}
+		s.batchRepo.UpdateBatchStatus(bgCtx, batchID, domain.BatchStatusCompleted)
+		if s.hub != nil {
+			s.hub.Broadcast <- ws.Message{Type: "completed", BatchID: batchID.String(), Payload: "Batch processing completed successfully"}
+		}
 
-	s.batchRepo.UpdateBatchStatus(ctx, batchID, domain.BatchStatusCompleted)
-
-	// Async: save history session AND courier performance events
-	go func() {
+		// Save history session AND courier performance events
 		session := buildSession(int(userID), results)
 		if err := s.historyService.SaveSession(session); err != nil {
 			log.Printf("WARN: failed to save comparison session for batch %v: %v", batchID, err)
@@ -219,6 +241,20 @@ func (s *batchService) ProcessBatch(ctx context.Context, userID int64, batchID u
 	}()
 
 	return nil
+}
+
+func (s *batchService) emitProgress(batchID string, processed, total int) {
+	if s.hub == nil {
+		return
+	}
+	s.hub.Broadcast <- ws.Message{
+		BatchID: batchID,
+		Type:    "progress",
+		Payload: map[string]interface{}{
+			"processed": processed,
+			"total":     total,
+		},
+	}
 }
 
 // safeFloat extracts value from *float64, returning 0 if nil.
