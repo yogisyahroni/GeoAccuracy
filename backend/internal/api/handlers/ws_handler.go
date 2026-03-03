@@ -3,6 +3,7 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -15,9 +16,23 @@ import (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	// Make sure to allow all origins in development, or restrict to frontend host
+	// FIX BUG-04: Only allow the known production frontend origin.
+	// Allowing all origins (*) in production enables CSRF-via-WebSocket attacks.
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Allowing all origins for simple integration
+		origin := r.Header.Get("Origin")
+		// Allow production frontend and local development
+		allowed := []string{
+			"https://geo-accuracy.vercel.app",
+			"http://localhost:5173",
+			"http://localhost:4173",
+		}
+		for _, o := range allowed {
+			if origin == o {
+				return true
+			}
+		}
+		// Allow empty origin (e.g. server-to-server, Postman, curl)
+		return origin == ""
 	},
 }
 
@@ -30,16 +45,14 @@ func NewWSHandler(hub *ws.Hub, cfg *config.Config) *WSHandler {
 	return &WSHandler{hub: hub, cfg: cfg}
 }
 
-// HandleBatchWS upgrades the HTTP connection and limits subscription by batchID
+// HandleBatchWS upgrades the HTTP connection and limits subscription by batchID.
 func (h *WSHandler) HandleBatchWS(c *gin.Context) {
-	// Authentication handling via JWT can also be applied here securely
-	// Typically either auth middleware or reading token from query params
-	// Since standard browser WS doesn't send Authorization headers easily:
+	// Browser WebSocket API does not support custom headers, so we accept the
+	// JWT from the ?token= query parameter for this endpoint only.
 	token := c.Query("token")
 	if token == "" {
-		// Try to fallback to reading Authorization if provided anyway
 		authHeader := c.GetHeader("Authorization")
-		if authHeader != "" && len(authHeader) > 7 {
+		if len(authHeader) > 7 {
 			token = authHeader[7:]
 		}
 	}
@@ -69,15 +82,25 @@ func (h *WSHandler) HandleBatchWS(c *gin.Context) {
 
 	h.hub.Register(client)
 
-	// Single goroutine to write to the connection
-	go func() {
-		defer func() {
+	// FIX BUG-02: Use sync.Once so that Unregister+Close is called exactly once,
+	// even if both goroutines (write-loop and read-loop) exit at the same time.
+	// Without this, two concurrent defers could call Unregister → close(client.Send)
+	// twice → panic: close of closed channel.
+	var once sync.Once
+	cleanup := func() {
+		once.Do(func() {
 			h.hub.Unregister(client)
 			client.Conn.Close()
-		}()
+		})
+	}
+
+	// Write loop — forwards messages from the hub to the WebSocket connection.
+	go func() {
+		defer cleanup()
 		for {
 			msg, ok := <-client.Send
 			if !ok {
+				// Hub closed the channel — send a clean close frame.
 				client.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
@@ -88,7 +111,7 @@ func (h *WSHandler) HandleBatchWS(c *gin.Context) {
 			}
 			w.Write(msg)
 
-			// Send queued messages safely
+			// Drain any queued messages in the same write frame for efficiency.
 			n := len(client.Send)
 			for i := 0; i < n; i++ {
 				w.Write([]byte{'\n'})
@@ -101,17 +124,14 @@ func (h *WSHandler) HandleBatchWS(c *gin.Context) {
 		}
 	}()
 
-	// Read block handles client disconnect explicitly
+	// Read loop — blocks until the client disconnects, then triggers cleanup.
 	go func() {
-		defer func() {
-			h.hub.Unregister(client)
-			client.Conn.Close()
-		}()
+		defer cleanup()
 		for {
 			_, _, err := client.Conn.ReadMessage()
 			if err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					log.Printf("error: %v", err)
+					log.Printf("WS unexpected close: %v", err)
 				}
 				break
 			}

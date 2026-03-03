@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"geoaccuracy-backend/internal/domain"
 	"geoaccuracy-backend/pkg/utils"
 	"log"
@@ -12,6 +13,9 @@ import (
 
 	ws "geoaccuracy-backend/internal/websocket"
 )
+
+// errAccessDenied is returned when the authenticated user does not own the requested batch.
+var errAccessDenied = errors.New("batch not found or access denied")
 
 type batchService struct {
 	batchRepo      domain.BatchRepository
@@ -52,7 +56,25 @@ func (s *batchService) ListUserBatches(ctx context.Context, userID int64) ([]dom
 	return s.batchRepo.GetBatchesByUserID(ctx, userID)
 }
 
-func (s *batchService) UploadSystemData(ctx context.Context, batchID uuid.UUID, records []domain.SystemRecord) error {
+// verifyBatchOwnership fetches the batch and confirms it belongs to userID.
+// Returns errAccessDenied if the batch is missing or owned by another user.
+func (s *batchService) verifyBatchOwnership(ctx context.Context, batchID uuid.UUID, userID int64) error {
+	batch, err := s.batchRepo.GetBatchByID(ctx, batchID)
+	if err != nil {
+		return err
+	}
+	if batch == nil || batch.UserID != userID {
+		return errAccessDenied
+	}
+	return nil
+}
+
+// UploadSystemData validates batch ownership then bulk-inserts/updates system records.
+func (s *batchService) UploadSystemData(ctx context.Context, userID int64, batchID uuid.UUID, records []domain.SystemRecord) error {
+	// FIX BUG-03: verify the batch belongs to this user before allowing writes.
+	if err := s.verifyBatchOwnership(ctx, batchID, userID); err != nil {
+		return err
+	}
 	var items []domain.BatchItem
 	for _, rec := range records {
 		items = append(items, domain.BatchItem{
@@ -66,7 +88,12 @@ func (s *batchService) UploadSystemData(ctx context.Context, batchID uuid.UUID, 
 	return s.batchRepo.UpsertBatchItems(ctx, items)
 }
 
-func (s *batchService) UploadFieldData(ctx context.Context, batchID uuid.UUID, records []domain.FieldRecord) error {
+// UploadFieldData validates batch ownership then stores field GPS records.
+func (s *batchService) UploadFieldData(ctx context.Context, userID int64, batchID uuid.UUID, records []domain.FieldRecord) error {
+	// FIX BUG-03: verify the batch belongs to this user before allowing writes.
+	if err := s.verifyBatchOwnership(ctx, batchID, userID); err != nil {
+		return err
+	}
 	var items []domain.BatchItem
 	for _, rec := range records {
 		lat := rec.FieldLat
@@ -84,6 +111,11 @@ func (s *batchService) UploadFieldData(ctx context.Context, batchID uuid.UUID, r
 }
 
 func (s *batchService) ProcessBatch(ctx context.Context, userID int64, batchID uuid.UUID) error {
+	// FIX BUG-03: verify the batch belongs to this user before allowing processing.
+	if err := s.verifyBatchOwnership(ctx, batchID, userID); err != nil {
+		return err
+	}
+
 	err := s.batchRepo.UpdateBatchStatus(ctx, batchID, domain.BatchStatusProcessing)
 	if err != nil {
 		return err
@@ -265,7 +297,12 @@ func safeFloat(f *float64) float64 {
 	return *f
 }
 
-func (s *batchService) GetBatchResults(ctx context.Context, batchID uuid.UUID) ([]domain.BatchItem, error) {
+// GetBatchResults validates batch ownership then returns all items for that batch.
+func (s *batchService) GetBatchResults(ctx context.Context, userID int64, batchID uuid.UUID) ([]domain.BatchItem, error) {
+	// FIX BUG-03: verify the batch belongs to this user before returning results.
+	if err := s.verifyBatchOwnership(ctx, batchID, userID); err != nil {
+		return nil, err
+	}
 	return s.batchRepo.GetBatchItemsByBatchID(ctx, batchID)
 }
 

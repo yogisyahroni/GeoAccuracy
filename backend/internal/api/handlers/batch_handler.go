@@ -58,7 +58,8 @@ func (h *BatchHandler) ListBatches(c *gin.Context) {
 }
 
 func (h *BatchHandler) UploadSystemData(c *gin.Context) {
-	_, ok := getUserID(c)
+	// FIX BUG-03: Capture userID and pass it for ownership check in service layer.
+	userID, ok := getUserID(c)
 	if !ok {
 		return
 	}
@@ -76,7 +77,11 @@ func (h *BatchHandler) UploadSystemData(c *gin.Context) {
 		return
 	}
 
-	if err := h.batchService.UploadSystemData(c.Request.Context(), batchID, records); err != nil {
+	if err := h.batchService.UploadSystemData(c.Request.Context(), int64(userID), batchID, records); err != nil {
+		if err.Error() == "batch not found or access denied" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -85,7 +90,8 @@ func (h *BatchHandler) UploadSystemData(c *gin.Context) {
 }
 
 func (h *BatchHandler) UploadFieldData(c *gin.Context) {
-	_, ok := getUserID(c)
+	// FIX BUG-03: Capture userID and pass it for ownership check in service layer.
+	userID, ok := getUserID(c)
 	if !ok {
 		return
 	}
@@ -103,7 +109,11 @@ func (h *BatchHandler) UploadFieldData(c *gin.Context) {
 		return
 	}
 
-	if err := h.batchService.UploadFieldData(c.Request.Context(), batchID, records); err != nil {
+	if err := h.batchService.UploadFieldData(c.Request.Context(), int64(userID), batchID, records); err != nil {
+		if err.Error() == "batch not found or access denied" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -124,16 +134,23 @@ func (h *BatchHandler) ProcessBatch(c *gin.Context) {
 		return
 	}
 
+	// ProcessBatch ownership is verified in the service layer.
 	if err := h.batchService.ProcessBatch(c.Request.Context(), int64(userID), batchID); err != nil {
+		if err.Error() == "batch not found or access denied" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Batch processed successfully"})
+	// 202 Accepted: processing runs asynchronously via WebSocket
+	c.JSON(http.StatusAccepted, gin.H{"message": "Batch processing started"})
 }
 
 func (h *BatchHandler) GetBatchResults(c *gin.Context) {
-	_, ok := getUserID(c)
+	// FIX BUG-03: Capture userID and pass it for ownership check in service layer.
+	userID, ok := getUserID(c)
 	if !ok {
 		return
 	}
@@ -145,8 +162,12 @@ func (h *BatchHandler) GetBatchResults(c *gin.Context) {
 		return
 	}
 
-	items, err := h.batchService.GetBatchResults(c.Request.Context(), batchID)
+	items, err := h.batchService.GetBatchResults(c.Request.Context(), int64(userID), batchID)
 	if err != nil {
+		if err.Error() == "batch not found or access denied" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

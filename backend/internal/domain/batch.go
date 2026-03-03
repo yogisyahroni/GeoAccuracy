@@ -80,11 +80,13 @@ type BatchService interface {
 	GetBatch(ctx context.Context, id uuid.UUID) (*Batch, error)
 	ListUserBatches(ctx context.Context, userID int64) ([]Batch, error)
 
-	UploadSystemData(ctx context.Context, batchID uuid.UUID, records []SystemRecord) error
-	UploadFieldData(ctx context.Context, batchID uuid.UUID, records []FieldRecord) error
+	// FIX BUG-03: userID added to UploadSystemData, UploadFieldData, GetBatchResults
+	// so the service layer can verify batch ownership before allowing the operation.
+	UploadSystemData(ctx context.Context, userID int64, batchID uuid.UUID, records []SystemRecord) error
+	UploadFieldData(ctx context.Context, userID int64, batchID uuid.UUID, records []FieldRecord) error
 
 	ProcessBatch(ctx context.Context, userID int64, batchID uuid.UUID) error
-	GetBatchResults(ctx context.Context, batchID uuid.UUID) ([]BatchItem, error)
+	GetBatchResults(ctx context.Context, userID int64, batchID uuid.UUID) ([]BatchItem, error)
 
 	// ETL-specific methods: persist pipeline results to batch_items for Dashboard visibility
 	UpsertETLItems(ctx context.Context, batchID uuid.UUID, items []BatchItem) error

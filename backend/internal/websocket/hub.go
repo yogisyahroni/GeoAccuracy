@@ -24,7 +24,10 @@ type Client struct {
 type Hub struct {
 	// Registered clients registered by batch ID
 	clients map[string]map[*Client]bool
-	mu      sync.RWMutex
+	// FIX BUG-01: Use a full Mutex (not RWMutex) because Run() both reads AND
+	// modifies the map (close + delete slow clients). Using RLock while mutating
+	// is a data race that can crash the Render server.
+	mu sync.Mutex
 
 	// Inbound messages to broadcast
 	Broadcast chan Message
@@ -40,7 +43,9 @@ func NewHub() *Hub {
 func (h *Hub) Run() {
 	for {
 		msg := <-h.Broadcast
-		h.mu.RLock()
+
+		// FIX BUG-01: Lock (write lock) because we may close + delete slow clients
+		h.mu.Lock()
 		subscribers := h.clients[msg.BatchID]
 		if len(subscribers) > 0 {
 			msgBytes, err := json.Marshal(msg)
@@ -51,13 +56,15 @@ func (h *Hub) Run() {
 					select {
 					case client.Send <- msgBytes:
 					default:
+						// Client send buffer is full — it's unresponsive.
+						// Close channel and remove while we already hold the lock.
 						close(client.Send)
 						delete(subscribers, client)
 					}
 				}
 			}
 		}
-		h.mu.RUnlock()
+		h.mu.Unlock()
 	}
 }
 
