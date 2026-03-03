@@ -1,0 +1,1844 @@
+
+[1m[46m RUN [49m[22m [36mv3.2.4 [39m[90me:/antigraviti google/project_putra/geoverify-logistics[39m
+
+[90mstderr[2m | src/pages/DataIntegration.test.tsx[2m > [22m[2mDataIntegration Component (Pipeline Builder)[2m > [22m[2mrenders tabs and correctly displays default Connections tab
+[22m[39m[["datasources"]]: No queryFn was passed as an option, and no default queryFn was found. The queryFn parameter is only optional when using a default queryFn. More info here: https://tanstack.com/query/latest/docs/framework/react/guides/default-query-function
+[["erp-integrations"]]: No queryFn was passed as an option, and no default queryFn was found. The queryFn parameter is only optional when using a default queryFn. More info here: https://tanstack.com/query/latest/docs/framework/react/guides/default-query-function
+⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+[90mstderr[2m | src/pages/DataIntegration.test.tsx[2m > [22m[2mDataIntegration Component (Pipeline Builder)[2m > [22m[2mswitches to Pipeline builder tab successfully
+[22m[39m[["datasources"]]: No queryFn was passed as an option, and no default queryFn was found. The queryFn parameter is only optional when using a default queryFn. More info here: https://tanstack.com/query/latest/docs/framework/react/guides/default-query-function
+[["erp-integrations"]]: No queryFn was passed as an option, and no default queryFn was found. The queryFn parameter is only optional when using a default queryFn. More info here: https://tanstack.com/query/latest/docs/framework/react/guides/default-query-function
+
+ [31m❯[39m src/pages/DataIntegration.test.tsx [2m([22m[2m2 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 189[2mms[22m[39m
+[31m   [31m×[31m DataIntegration Component (Pipeline Builder)[2m > [22mrenders tabs and correctly displays default Connections tab[39m[32m 147[2mms[22m[39m
+[31m     → Unable to find an element with the text: /Enterprise Integrations/i. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[31m
+  [36m<div>[31m
+    [36m<div[31m
+      [33mclass[31m=[32m"space-y-6"[31m
+    [36m>[31m
+      [36m<div>[31m
+        [36m<h1[31m
+          [33mclass[31m=[32m"text-2xl font-bold text-foreground flex items-center gap-2"[31m
+        [36m>[31m
+          [36m<svg[31m
+            [33mclass[31m=[32m"lucide lucide-database-zap h-6 w-6 text-primary"[31m
+            [33mfill[31m=[32m"none"[31m
+            [33mheight[31m=[32m"24"[31m
+            [33mstroke[31m=[32m"currentColor"[31m
+            [33mstroke-linecap[31m=[32m"round"[31m
+            [33mstroke-linejoin[31m=[32m"round"[31m
+            [33mstroke-width[31m=[32m"2"[31m
+            [33mviewBox[31m=[32m"0 0 24 24"[31m
+            [33mwidth[31m=[32m"24"[31m
+            [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+          [36m>[31m
+            [36m<ellipse[31m
+              [33mcx[31m=[32m"12"[31m
+              [33mcy[31m=[32m"5"[31m
+              [33mrx[31m=[32m"9"[31m
+              [33mry[31m=[32m"3"[31m
+            [36m/>[31m
+            [36m<path[31m
+              [33md[31m=[32m"M3 5V19A9 3 0 0 0 15 21.84"[31m
+            [36m/>[31m
+            [36m<path[31m
+              [33md[31m=[32m"M21 5V8"[31m
+            [36m/>[31m
+            [36m<path[31m
+              [33md[31m=[32m"M21 12L18 17H22L19 22"[31m
+            [36m/>[31m
+            [36m<path[31m
+              [33md[31m=[32m"M3 12A9 3 0 0 0 14.59 14.87"[31m
+            [36m/>[31m
+          [36m</svg>[31m
+          [0mData Integration[0m
+        [36m</h1>[31m
+        [36m<p[31m
+          [33mclass[31m=[32m"text-muted-foreground mt-1"[31m
+        [36m>[31m
+          [0mConnect to external databases and build transformation pipelines (ETL).[0m
+        [36m</p>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"inline-flex flex-wrap space-x-1 p-1 bg-muted/50 rounded-xl border border-border/40 mb-8 shadow-sm"[31m
+        [36m>[31m
+          [36m<button[31m
+            [33mclass[31m=[32m"flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all bg-background text-foreground shadow-sm"[31m
+          [36m>[31m
+            [36m<svg[31m
+              [33mclass[31m=[32m"lucide lucide-server w-4 h-4"[31m
+              [33mfill[31m=[32m"none"[31m
+              [33mheight[31m=[32m"24"[31m
+              [33mstroke[31m=[32m"currentColor"[31m
+              [33mstroke-linecap[31m=[32m"round"[31m
+              [33mstroke-linejoin[31m=[32m"round"[31m
+              [33mstroke-width[31m=[32m"2"[31m
+              [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [33mwidth[31m=[32m"24"[31m
+              [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+            [36m>[31m
+              [36m<rect[31m
+                [33mheight[31m=[32m"8"[31m
+                [33mrx[31m=[32m"2"[31m
+                [33mry[31m=[32m"2"[31m
+                [33mwidth[31m=[32m"20"[31m
+                [33mx[31m=[32m"2"[31m
+                [33my[31m=[32m"2"[31m
+              [36m/>[31m
+              [36m<rect[31m
+                [33mheight[31m=[32m"8"[31m
+                [33mrx[31m=[32m"2"[31m
+                [33mry[31m=[32m"2"[31m
+                [33mwidth[31m=[32m"20"[31m
+                [33mx[31m=[32m"2"[31m
+                [33my[31m=[32m"14"[31m
+              [36m/>[31m
+              [36m<line[31m
+                [33mx1[31m=[32m"6"[31m
+                [33mx2[31m=[32m"6.01"[31m
+                [33my1[31m=[32m"6"[31m
+                [33my2[31m=[32m"6"[31m
+              [36m/>[31m
+              [36m<line[31m
+                [33mx1[31m=[32m"6"[31m
+                [33mx2[31m=[32m"6.01"[31m
+                [33my1[31m=[32m"18"[31m
+                [33my2[31m=[32m"18"[31m
+              [36m/>[31m
+            [36m</svg>[31m
+            [0m Relational Connections[0m
+          [36m</button>[31m
+          [36m<button[31m
+            [33mclass[31m=[32m"flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all text-muted-foreground hover:bg-white/5 hover:text-foreground"[31m
+          [36m>[31m
+            [36m<svg[31m
+              [33mclass[31m=[32m"lucide lucide-link w-4 h-4"[31m
+              [33mfill[31m=[32m"none"[31m
+              [33mheight[31m=[32m"24"[31m
+              [33mstroke[31m=[32m"currentColor"[31m
+              [33mstroke-linecap[31m=[32m"round"[31m
+              [33mstroke-linejoin[31m=[32m"round"[31m
+              [33mstroke-width[31m=[32m"2"[31m
+              [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [33mwidth[31m=[32m"24"[31m
+              [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+            [36m>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"[31m
+              [36m/>[31m
+            [36m</svg>[31m
+            [0m ERP API Push/Pull[0m
+          [36m</button>[31m
+          [36m<button[31m
+            [33mclass[31m=[32m"flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all text-muted-foreground hover:bg-white/5 hover:text-foreground"[31m
+          [36m>[31m
+            [36m<svg[31m
+              [33mclass[31m=[32m"lucide lucide-database-zap w-4 h-4"[31m
+              [33mfill[31m=[32m"none"[31m
+              [33mheight[31m=[32m"24"[31m
+              [33mstroke[31m=[32m"currentColor"[31m
+              [33mstroke-linecap[31m=[32m"round"[31m
+              [33mstroke-linejoin[31m=[32m"round"[31m
+              [33mstroke-width[31m=[32m"2"[31m
+              [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [33mwidth[31m=[32m"24"[31m
+              [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+            [36m>[31m
+              [36m<ellipse[31m
+                [33mcx[31m=[32m"12"[31m
+                [33mcy[31m=[32m"5"[31m
+                [33mrx[31m=[32m"9"[31m
+                [33mry[31m=[32m"3"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M3 5V19A9 3 0 0 0 15 21.84"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M21 5V8"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M21 12L18 17H22L19 22"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M3 12A9 3 0 0 0 14.59 14.87"[31m
+              [36m/>[31m
+            [36m</svg>[31m
+            [0m Transformation Pipeline[0m
+          [36m</button>[31m
+        [36m</div>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"animate-in fade-in slide-in-from-bottom-4 duration-500 ease-in-out"[31m
+        [36m>[31m
+          [36m<div[31m
+            [33mclass[31m=[32m"grid grid-cols-1 md:grid-cols-2 gap-6"[31m
+          [36m>[31m
+            [36m<div[31m
+              [33mclass[31m=[32m"bg-card p-6 rounded-lg border border-border shadow-sm"[31m
+            [36m>[31m
+              [36m<h2[31m
+                [33mclass[31m=[32m"text-lg font-semibold mb-4 flex items-center"[31m
+              [36m>[31m
+                [0mTambah Database[0m
+                [36m<span[31m
+                  [33mclass[31m=[32m"inline-flex items-center ml-1.5 cursor-help text-muted-foreground hover:text-primary transition-colors focus:outline-none"[31m
+                  [33mdata-state[31m=[32m"closed"[31m
+                  [33mtabindex[31m=[32m"0"[31m
+                [36m>[31m
+                  [36m<svg[31m
+                    [33mclass[31m=[32m"lucide lucide-circle-help w-3.5 h-3.5"[31m
+                    [33mfill[31m=[32m"none"[31m
+                    [33mheight[31m=[32m"24"[31m
+                    [33mstroke[31m=[32m"currentColor"[31m
+                    [33mstroke-linecap[31m=[32m"round"[31m
+                    [33mstroke-linejoin[31m=[32m"round"[31m
+                    [33mstroke-width[31m=[32m"2"[31m
+                    [33mviewBox[31m=[32m"0 0 24 24"[31m
+                    [33mwidth[31m=[32m"24"[31m
+                    [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+                  [36m>[31m
+                    [36m<circle[31m
+                      [33mcx[31m=[32m"12"[31m
+                      [33mcy[31m=[32m"12"[31m
+                      [33mr[31m=[32m"10"[31m
+                    [36m/>[31m
+                    [36m<path[31m
+                      [33md[31m=[32m"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"[31m
+                    [36m/>[31m
+                    [36m<path[31m
+                      [33md[31m=[32m"M12 17h.01"[31m
+                    [36m/>[31m
+                  [36m</svg>[31m
+                [36m</span>[31m
+              [36m</h2>[31m
+              [36m<form[31m
+                [33mclass[31m=[32m"space-y-4"[31m
+              [36m>[31m
+                [36m<div>[31m
+                  [36m<label[31m
+                    [33mclass[31m=[32m"block text-sm font-medium mb-1 flex items-center"[31m
+                  [36m>[31m
+                    [0mNama Koneksi [0m
+                    [36m<span[31m
+                      [33mclass[31m=[32m"inline-flex items-center ml-1.5 cursor-help text-muted-foreground hover:text-primary transition-colors focus:outline-none"[31m
+                      [33mdata-state[31m=[32m"closed"[31m
+                      [33mtabindex[31m=[32m"0"[31m
+                    [36m>[31m
+                      [36m<svg[31m
+                        [33mclass[31m=[32m"lucide lucide-circle-help w-3.5 h-3.5"[31m
+                        [33mfill[31m=[32m"none"[31m
+                        [33mheight[31m=[32m"24"[31m
+                        [33mstroke[31m=[32m"currentColor"[31m
+                        [33mstroke-linecap[31m=[32m"round"[31m
+                        [33mstroke-linejoin[31m=[32m"round"[31m
+                        [33mstroke-width[31m=[32m"2"[31m
+                        [33mviewBox[31m=[32m"0 0 24 24"[31m
+                        [33mwidth[31m=[32m"24"[31m
+                        [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+                      [36m>[31m
+                        [36m<circle[31m
+                          [33mcx[31m=[32m"12"[31m
+                          [33mcy[31m=[32m"12"[31m
+                          [33mr[31m=[32m"10"[31m
+                        [36m/>[31m
+                        [36m<path[31m
+                          [33md[31m=[32m"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"[31m
+                        [36m/>[31m
+                        [36m<path[31m
+                          [33md[31m=[32m"M12 17h.01"[31m
+                        [36m/>[31m
+                      [36m</svg>[31m
+                    [36m</span>[31m
+                  [36m</label>[31m
+                  [36m<input[31m
+                    [33mclass[31m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[31m
+                    [33mrequired[31m=[32m""[31m
+                    [33mtype[31m=[32m"text"[31m
+                    [33mvalue[31m=[32m""[31m
+                  [36m/>[31m
+                [36m</div>[31m
+                [36m<div[31m
+                  [33mclass[31m=[32m"grid grid-cols-2 gap-4"[31m
+                [36m>[31m
+                  [36m<div>[31m
+                    [36m<label[31m
+                      [33mclass[31m=[32m"block text-sm font-medium mb-1"[31m
+                    [36m>[31m
+                      [0mProvider[0m
+                    [36m</label>[31m
+                    [36m<select[31m
+                      [33mclass[31m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[31m
+                    [36m>[31m
+                      [36m<option[31m
+                        [33mvalue[31m=[32m"postgresql"[31m
+                      [36m>[31m
+                        [0mPostgreSQL[0m
+                      [36m</option>[31m
+                      [36m<option[31m
+                        [33mvalue[31m=[32m"mysql"[31m
+                      [36m>[31m
+                        [0mMySQL[0m
+                      [36m</option>[31m
+                    [36m</select>[31m
+                  [36m</div>[31m
+                  [36m<div>[31m
+                    [36m<label[31m
+                      [33mclass[31m=[32m"block text-sm font-medium mb-1"[31m
+                    [36m>[31m
+                      [0mHost[0m
+                    [36m</label>[31m
+                    [36m<input[31m
+                      [33mclass[31m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[31m
+                      [33mrequired[31m=[32m""[31m
+                      [33mtype[31m=[32m"text"[31m
+                      [33mvalue[31m=[32m"localhost"[31m
+                    [36m/>[31m
+                  [36m</div>[31m
+                [36m</div>[31m
+                [36m<div[31m
+                  [33mclass[31m=[32m"grid grid-cols-2 gap-4"[31m
+                [36m>[31m
+                  [36m<div>[31m
+                    [36m<label[31m
+                      [33mclass[31m=[32m"block text-sm font-medium mb-1"[31m
+                    [36m>[31m
+                      [0mPort[0m
+                    [36m</label>[31m
+                    [36m<input[31m
+                      [33mclass[31m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[31m
+                      [33mrequired[31m=[32m""[31m
+                      [33mtype[31m=[32m"number"[31m
+                      [33mvalue[31m=[32m"5432"[31m
+                    [36m/>[31m
+                  [36m</div>[31m
+                  [36m<div>[31m
+                    [36m<label[31m
+                      [33mclass[31m=[32m"block text-sm font-medium mb-1"[31m
+                    [36m>[31m
+                      [0mDatabase[0m
+                    [36m</label>[31m
+                    [36m<input[31m
+                      [33mclass[31m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[31m
+                      [33mrequired[31m=[32m""[31m
+                      [33mtype[31m=[32m"text"[31m
+                      [33mvalue[31m=[32m""[31m
+                    [36m/>[31m
+                  [36m</div>[31m
+                [36m</div>[31m
+                [36m<div[31m
+                  [33mclass[31m=[32m"grid grid-cols-2 gap-4"[31m
+                [36m>[31m
+                  [36m<div>[31m
+                    [36m<label[31m
+                      [33mclass[31m=[32m"block text-sm font-medium mb-1"[31m
+                    [36m>[31m
+                      [0mUsername[0m
+                    [36m</label>[31m
+                    [36m<input[31m
+                      [33mclass[31m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[31m
+                      [33mrequired[31m=[32m""[31m
+                      [33mtype[31m=[32m"text"[31m
+                      [33mvalue[31m=[32m""[31m
+                    [36m/>[31m
+                  [36m</div>[31m
+                  [36m<div>[31m
+                    [36m<label[31m
+                      [33mclass[31m=[32m"block text-sm font-medium mb-1"[31m
+                    [36m>[31m
+                      [0mPassword[0m
+                    [36m</label>[31m
+                    [36m<input[31m
+                      [33mclass[31m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[31m
+                      [33mrequired[31m=[32m""[31m
+                      [33mtype[31m=[32m"password"[31m
+                      [33mvalue[31m=[32m""[31m
+                    [36m/>[31m
+                  [36m</div>[31m
+                [36m</div>[31m
+                [36m<div[31m
+                  [33mclass[31m=[32m"flex gap-3 pt-2"[31m
+                [36m>[31m
+                  [36m<button[31m
+                    [33mclass[31m=[32m"flex-1 bg-secondary text-secondary-foreground py-2 rounded-md font-medium hover:brightness-110 flex items-center justify-center gap-2"[31m
+                    [33mtype[31m=[32m"button"[31m
+                  [36m>[31m
+                    [0m Test Connection[0m
+                  [36m</button>[31m
+                  [36m<button[31m
+                    [33mclass[31m=[32m"flex-1 bg-primary text-primary-foreground py-2 rounded-md font-medium hover:brightness-110 flex items-center justify-center gap-2"[31m
+                    [33mtype[31m=[32m"submit"[31m
+                  [36m>[31m
+                    [36m<svg[31m
+                      [33mclass[31m=[32m"lucide lucide-plus w-4 h-4"[31m
+                      [33mfill[31m=[32m"none"[31m
+                      [33mheight[31m=[32m"24"[31m
+                      [33mstroke[31m=[32m"currentColor"[31m
+                      [33mstroke-linecap[31m=[32m"round"[31m
+                      [33mstroke-linejoin[31m=[32m"round"[31m
+                      [33mstroke-width[31m=[32m"2"[31m
+                      [33mviewBox[31m=[32m"0 0 24 24"[31m
+                      [33mwidth[31m=[32m"24"[31m
+                      [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+                    [36m>[31m
+                      [36m<path[31m
+                        [33md[31m=[32m"M5 12h14"[31m
+                      [36m/>[31m
+                      [36m<path[31m
+                        [33md[31m=[32m"M12 5v14"[31m
+                      [36m/>[31m
+                    [36m</svg>[31m
+                    [0m Save Source[0m
+                  [36m</button>[31m
+                [36m</div>[31m
+              [36m</form>[31m
+            [36m</div>[31m
+            [36m<div[31m
+              [33mclass[31m=[32m"bg-card p-6 rounded-lg border border-border shadow-sm"[31m
+            [36m>[31m
+              [36m<h2[31m
+                [33mclass[31m=[32m"text-lg font-semibold mb-4"[31m
+              [36m>[31m
+                [0mSaved Connections[0m
+              [36m</h2>[31m
+              [36m<div[31m
+                [33mclass[31m=[32m"flex justify-center p-8"[31m
+              [36m>[31m
+                [36m<svg[31m
+                  [33mclass[31m=[32m"lucide lucide-loader-circle h-6 w-6 animate-spin text-muted-foreground"[31m
+                  [33mfill[31m=[32m"none"[31m
+                  [33mheight[31m=[32m"24"[31m
+                  [33mstroke[31m=[32m"currentColor"[31m
+                  [33mstroke-linecap[31m=[32m"round"[31m
+                  [33mstroke-linejoin[31m=[32m"round"[31m
+                  [33mstroke-width[31m=[32m"2"[31m
+                  [33mviewBox[31m=[32m"0 0 24 24"[31m
+                  [33mwidth[31m=[32m"24"[31m
+                  [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+                [36m>[31m
+                  [36m<path[31m
+                    [33md[31m=[32m"M21 12a9 9 0 1 1-6.219-8.56"[31m
+                  [36m/>[31m
+                [36m</svg>[31m
+              [36m</div>[31m
+            [36m</div>[31m
+          [36m</div>[31m
+        [36m</div>[31m
+      [36m</div>[31m
+    [36m</div>[31m
+  [36m</div>[31m
+[36m</body>[31m[39m
+[31m   [31m×[31m DataIntegration Component (Pipeline Builder)[2m > [22mswitches to Pipeline builder tab successfully[39m[32m 40[2mms[22m[39m
+[31m     → Found multiple elements with the text: /Transformation Pipeline/i
+
+Here are the matching elements:
+
+Ignored nodes: comments, script, style
+[36m<p[31m
+  [33mclass[31m=[32m"text-muted-foreground mt-1"[31m
+[36m>[31m
+  [0mConnect to external databases and build transformation pipelines (ETL).[0m
+[36m</p>[31m
+
+Ignored nodes: comments, script, style
+[36m<button[31m
+  [33mclass[31m=[32m"flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all text-muted-foreground hover:bg-white/5 hover:text-foreground"[31m
+[36m>[31m
+  [36m<svg[31m
+    [33mclass[31m=[32m"lucide lucide-database-zap w-4 h-4"[31m
+    [33mfill[31m=[32m"none"[31m
+    [33mheight[31m=[32m"24"[31m
+    [33mstroke[31m=[32m"currentColor"[31m
+    [33mstroke-linecap[31m=[32m"round"[31m
+    [33mstroke-linejoin[31m=[32m"round"[31m
+    [33mstroke-width[31m=[32m"2"[31m
+    [33mviewBox[31m=[32m"0 0 24 24"[31m
+    [33mwidth[31m=[32m"24"[31m
+    [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+  [36m>[31m
+    [36m<ellipse[31m
+      [33mcx[31m=[32m"12"[31m
+      [33mcy[31m=[32m"5"[31m
+      [33mrx[31m=[32m"9"[31m
+      [33mry[31m=[32m"3"[31m
+    [36m/>[31m
+    [36m<path[31m
+      [33md[31m=[32m"M3 5V19A9 3 0 0 0 15 21.84"[31m
+    [36m/>[31m
+    [36m<path[31m
+      [33md[31m=[32m"M21 5V8"[31m
+    [36m/>[31m
+    [36m<path[31m
+      [33md[31m=[32m"M21 12L18 17H22L19 22"[31m
+    [36m/>[31m
+    [36m<path[31m
+      [33md[31m=[32m"M3 12A9 3 0 0 0 14.59 14.87"[31m
+    [36m/>[31m
+  [36m</svg>[31m
+  [0m Transformation Pipeline[0m
+[36m</button>[31m
+
+(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+Ignored nodes: comments, script, style
+[36m<body>[31m
+  [36m<div>[31m
+    [36m<div[31m
+      [33mclass[31m=[32m"space-y-6"[31m
+    [36m>[31m
+      [36m<div>[31m
+        [36m<h1[31m
+          [33mclass[31m=[32m"text-2xl font-bold text-foreground flex items-center gap-2"[31m
+        [36m>[31m
+          [36m<svg[31m
+            [33mclass[31m=[32m"lucide lucide-database-zap h-6 w-6 text-primary"[31m
+            [33mfill[31m=[32m"none"[31m
+            [33mheight[31m=[32m"24"[31m
+            [33mstroke[31m=[32m"currentColor"[31m
+            [33mstroke-linecap[31m=[32m"round"[31m
+            [33mstroke-linejoin[31m=[32m"round"[31m
+            [33mstroke-width[31m=[32m"2"[31m
+            [33mviewBox[31m=[32m"0 0 24 24"[31m
+            [33mwidth[31m=[32m"24"[31m
+            [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+          [36m>[31m
+            [36m<ellipse[31m
+              [33mcx[31m=[32m"12"[31m
+              [33mcy[31m=[32m"5"[31m
+              [33mrx[31m=[32m"9"[31m
+              [33mry[31m=[32m"3"[31m
+            [36m/>[31m
+            [36m<path[31m
+              [33md[31m=[32m"M3 5V19A9 3 0 0 0 15 21.84"[31m
+            [36m/>[31m
+            [36m<path[31m
+              [33md[31m=[32m"M21 5V8"[31m
+            [36m/>[31m
+            [36m<path[31m
+              [33md[31m=[32m"M21 12L18 17H22L19 22"[31m
+            [36m/>[31m
+            [36m<path[31m
+              [33md[31m=[32m"M3 12A9 3 0 0 0 14.59 14.87"[31m
+            [36m/>[31m
+          [36m</svg>[31m
+          [0mData Integration[0m
+        [36m</h1>[31m
+        [36m<p[31m
+          [33mclass[31m=[32m"text-muted-foreground mt-1"[31m
+        [36m>[31m
+          [0mConnect to external databases and build transformation pipelines (ETL).[0m
+        [36m</p>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"inline-flex flex-wrap space-x-1 p-1 bg-muted/50 rounded-xl border border-border/40 mb-8 shadow-sm"[31m
+        [36m>[31m
+          [36m<button[31m
+            [33mclass[31m=[32m"flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all bg-background text-foreground shadow-sm"[31m
+          [36m>[31m
+            [36m<svg[31m
+              [33mclass[31m=[32m"lucide lucide-server w-4 h-4"[31m
+              [33mfill[31m=[32m"none"[31m
+              [33mheight[31m=[32m"24"[31m
+              [33mstroke[31m=[32m"currentColor"[31m
+              [33mstroke-linecap[31m=[32m"round"[31m
+              [33mstroke-linejoin[31m=[32m"round"[31m
+              [33mstroke-width[31m=[32m"2"[31m
+              [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [33mwidth[31m=[32m"24"[31m
+              [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+            [36m>[31m
+              [36m<rect[31m
+                [33mheight[31m=[32m"8"[31m
+                [33mrx[31m=[32m"2"[31m
+                [33mry[31m=[32m"2"[31m
+                [33mwidth[31m=[32m"20"[31m
+                [33mx[31m=[32m"2"[31m
+                [33my[31m=[32m"2"[31m
+              [36m/>[31m
+              [36m<rect[31m
+                [33mheight[31m=[32m"8"[31m
+                [33mrx[31m=[32m"2"[31m
+                [33mry[31m=[32m"2"[31m
+                [33mwidth[31m=[32m"20"[31m
+                [33mx[31m=[32m"2"[31m
+                [33my[31m=[32m"14"[31m
+              [36m/>[31m
+              [36m<line[31m
+                [33mx1[31m=[32m"6"[31m
+                [33mx2[31m=[32m"6.01"[31m
+                [33my1[31m=[32m"6"[31m
+                [33my2[31m=[32m"6"[31m
+              [36m/>[31m
+              [36m<line[31m
+                [33mx1[31m=[32m"6"[31m
+                [33mx2[31m=[32m"6.01"[31m
+                [33my1[31m=[32m"18"[31m
+                [33my2[31m=[32m"18"[31m
+              [36m/>[31m
+            [36m</svg>[31m
+            [0m Relational Connections[0m
+          [36m</button>[31m
+          [36m<button[31m
+            [33mclass[31m=[32m"flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all text-muted-foreground hover:bg-white/5 hover:text-foreground"[31m
+          [36m>[31m
+            [36m<svg[31m
+              [33mclass[31m=[32m"lucide lucide-link w-4 h-4"[31m
+              [33mfill[31m=[32m"none"[31m
+              [33mheight[31m=[32m"24"[31m
+              [33mstroke[31m=[32m"currentColor"[31m
+              [33mstroke-linecap[31m=[32m"round"[31m
+              [33mstroke-linejoin[31m=[32m"round"[31m
+              [33mstroke-width[31m=[32m"2"[31m
+              [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [33mwidth[31m=[32m"24"[31m
+              [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+            [36m>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"[31m
+              [36m/>[31m
+            [36m</svg>[31m
+            [0m ERP API Push/Pull[0m
+          [36m</button>[31m
+          [36m<button[31m
+            [33mclass[31m=[32m"flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all text-muted-foreground hover:bg-white/5 hover:text-foreground"[31m
+          [36m>[31m
+            [36m<svg[31m
+              [33mclass[31m=[32m"lucide lucide-database-zap w-4 h-4"[31m
+              [33mfill[31m=[32m"none"[31m
+              [33mheight[31m=[32m"24"[31m
+              [33mstroke[31m=[32m"currentColor"[31m
+              [33mstroke-linecap[31m=[32m"round"[31m
+              [33mstroke-linejoin[31m=[32m"round"[31m
+              [33mstroke-width[31m=[32m"2"[31m
+              [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [33mwidth[31m=[32m"24"[31m
+              [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+            [36m>[31m
+              [36m<ellipse[31m
+                [33mcx[31m=[32m"12"[31m
+                [33mcy[31m=[32m"5"[31m
+                [33mrx[31m=[32m"9"[31m
+                [33mry[31m=[32m"3"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M3 5V19A9 3 0 0 0 15 21.84"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M21 5V8"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M21 12L18 17H22L19 22"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M3 12A9 3 0 0 0 14.59 14.87"[31m
+              [36m/>[31m
+            [36m</svg>[31m
+            [0m Transformation Pipeline[0m
+          [36m</button>[31m
+        [36m</div>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"animate-in fade-in slide-in-from-bottom-4 duration-500 ease-in-out"[31m
+        [36m>[31m
+          [36m<div[31m
+            [33mclass[31m=[32m"grid grid-cols-1 md:grid-cols-2 gap-6"[31m
+          [36m>[31m
+            [36m<div[31m
+              [33mclass[31m=[32m"bg-card p-6 rounded-lg border border-border shadow-sm"[31m
+            [36m>[31m
+              [36m<h2[31m
+                [33mclass[31m=[32m"text-lg font-semibold mb-4 flex items-center"[31m
+              [36m>[31m
+                [0mTambah Database[0m
+                [36m<span[31m
+                  [33mclass[31m=[32m"inline-flex items-center ml-1.5 cursor-help text-muted-foreground hover:text-primary transition-colors focus:outline-none"[31m
+                  [33mdata-state[31m=[32m"closed"[31m
+                  [33mtabindex[31m=[32m"0"[31m
+                [36m>[31m
+                  [36m<svg[31m
+                    [33mclass[31m=[32m"lucide lucide-circle-help w-3.5 h-3.5"[31m
+                    [33mfill[31m=[32m"none"[31m
+                    [33mheight[31m=[32m"24"[31m
+                    [33mstroke[31m=[32m"currentColor"[31m
+                    [33mstroke-linecap[31m=[32m"round"[31m
+                    [33mstroke-linejoin[31m=[32m"round"[31m
+                    [33mstroke-width[31m=[32m"2"[31m
+                    [33mviewBox[31m=[32m"0 0 24 24"[31m
+                    [33mwidth[31m=[32m"24"[31m
+                    [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+                  [36m>[31m
+                    [36m<circle[31m
+                      [33mcx[31m=[32m"12"[31m
+                      [33mcy[31m=[32m"12"[31m
+                      [33mr[31m=[32m"10"[31m
+                    [36m/>[31m
+                    [36m<path[31m
+                      [33md[31m=[32m"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"[31m
+                    [36m/>[31m
+                    [36m<path[31m
+                      [33md[31m=[32m"M12 17h.01"[31m
+                    [36m/>[31m
+                  [36m</svg>[31m
+                [36m</span>[31m
+              [36m</h2>[31m
+              [36m<form[31m
+                [33mclass[31m=[32m"space-y-4"[31m
+              [36m>[31m
+                [36m<div>[31m
+                  [36m<label[31m
+                    [33mclass[31m=[32m"block text-sm font-medium mb-1 flex items-center"[31m
+                  [36m>[31m
+                    [0mNama Koneksi [0m
+                    [36m<span[31m
+                      [33mclass[31m=[32m"inline-flex items-center ml-1.5 cursor-help text-muted-foreground hover:text-primary transition-colors focus:outline-none"[31m
+                      [33mdata-state[31m=[32m"closed"[31m
+                      [33mtabindex[31m=[32m"0"[31m
+                    [36m>[31m
+                      [36m<svg[31m
+                        [33mclass[31m=[32m"lucide lucide-circle-help w-3.5 h-3.5"[31m
+                        [33mfill[31m=[32m"none"[31m
+                        [33mheight[31m=[32m"24"[31m
+                        [33mstroke[31m=[32m"currentColor"[31m
+                        [33mstroke-linecap[31m=[32m"round"[31m
+                        [33mstroke-linejoin[31m=[32m"round"[31m
+                        [33mstroke-width[31m=[32m"2"[31m
+                        [33mviewBox[31m=[32m"0 0 24 24"[31m
+                        [33mwidth[31m=[32m"24"[31m
+                        [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+                      [36m>[31m
+                        [36m<circle[31m
+                          [33mcx[31m=[32m"12"[31m
+                          [33mcy[31m=[32m"12"[31m
+                          [33mr[31m=[32m"10"[31m
+                        [36m/>[31m
+                        [36m<path[31m
+                          [33md[31m=[32m"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"[31m
+                        [36m/>[31m
+                        [36m<path[31m
+                          [33md[31m=[32m"M12 17h.01"[31m
+                        [36m/>[31m
+                      [36m</svg>[31m
+                    [36m</span>[31m
+                  [36m</label>[31m
+                  [36m<input[31m
+                    [33mclass[31m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[31m
+                    [33mrequired[31m=[32m""[31m
+                    [33mtype[31m=[32m"text"[31m
+                    [33mvalue[31m=[32m""[31m
+                  [36m/>[31m
+                [36m</div>[31m
+                [36m<div[31m
+                  [33mclass[31m=[32m"grid grid-cols-2 gap-4"[31m
+                [36m>[31m
+                  [36m<div>[31m
+                    [36m<label[31m
+                      [33mclass[31m=[32m"block text-sm font-medium mb-1"[31m
+                    [36m>[31m
+                      [0mProvider[0m
+                    [36m</label>[31m
+                    [36m<select[31m
+                      [33mclass[31m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[31m
+                    [36m>[31m
+                      [36m<option[31m
+                        [33mvalue[31m=[32m"postgresql"[31m
+                      [36m>[31m
+                        [0mPostgreSQL[0m
+                      [36m</option>[31m
+                      [36m<option[31m
+                        [33mvalue[31m=[32m"mysql"[31m
+                      [36m>[31m
+                        [0mMySQL[0m
+                      [36m</option>[31m
+                    [36m</select>[31m
+                  [36m</div>[31m
+                  [36m<div>[31m
+                    [36m<label[31m
+                      [33mclass[31m=[32m"block text-sm font-medium mb-1"[31m
+                    [36m>[31m
+                      [0mHost[0m
+                    [36m</label>[31m
+                    [36m<input[31m
+                      [33mclass[31m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[31m
+                      [33mrequired[31m=[32m""[31m
+                      [33mtype[31m=[32m"text"[31m
+                      [33mvalue[31m=[32m"localhost"[31m
+                    [36m/>[31m
+                  [36m</div>[31m
+                [36m</div>[31m
+                [36m<div[31m
+                  [33mclass[31m=[32m"grid grid-cols-2 gap-4"[31m
+                [36m>[31m
+                  [36m<div>[31m
+                    [36m<label[31m
+                      [33mclass[31m=[32m"block text-sm font-medium mb-1"[31m
+                    [36m>[31m
+                      [0mPort[0m
+                    [36m</label>[31m
+                    [36m<input[31m
+                      [33mclass[31m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[31m
+                      [33mrequired[31m=[32m""[31m
+                      [33mtype[31m=[32m"number"[31m
+                      [33mvalue[31m=[32m"5432"[31m
+                    [36m/>[31m
+                  [36m</div>[31m
+                  [36m<div>[31m
+                    [36m<label[31m
+                      [33mclass[31m=[32m"block text-sm font-medium mb-1"[31m
+                    [36m>[31m
+                      [0mDatabase[0m
+                    [36m</label>[31m
+                    [36m<input[31m
+                      [33mclass[31m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[31m
+                      [33mrequired[31m=[32m""[31m
+                      [33mtype[31m=[32m"text"[31m
+                      [33mvalue[31m=[32m""[31m
+                    [36m/>[31m
+                  [36m</div>[31m
+                [36m</div>[31m
+                [36m<div[31m
+                  [33mclass[31m=[32m"grid grid-cols-2 gap-4"[31m
+                [36m>[31m
+                  [36m<div>[31m
+                    [36m<label[31m
+                      [33mclass[31m=[32m"block text-sm font-medium mb-1"[31m
+                    [36m>[31m
+                      [0mUsername[0m
+                    [36m</label>[31m
+                    [36m<input[31m
+                      [33mclass[31m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[31m
+                      [33mrequired[31m=[32m""[31m
+                      [33mtype[31m=[32m"text"[31m
+                      [33mvalue[31m=[32m""[31m
+                    [36m/>[31m
+                  [36m</div>[31m
+                  [36m<div>[31m
+                    [36m<label[31m
+                      [33mclass[31m=[32m"block text-sm font-medium mb-1"[31m
+                    [36m>[31m
+                      [0mPassword[0m
+                    [36m</label>[31m
+                    [36m<input[31m
+                      [33mclass[31m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[31m
+                      [33mrequired[31m=[32m""[31m
+                      [33mtype[31m=[32m"password"[31m
+                      [33mvalue[31m=[32m""[31m
+                    [36m/>[31m
+                  [36m</div>[31m
+                [36m</div>[31m
+                [36m<div[31m
+                  [33mclass[31m=[32m"flex gap-3 pt-2"[31m
+                [36m>[31m
+                  [36m<button[31m
+                    [33mclass[31m=[32m"flex-1 bg-secondary text-secondary-foreground py-2 rounded-md font-medium hover:brightness-110 flex items-center justify-center gap-2"[31m
+                    [33mtype[31m=[32m"button"[31m
+                  [36m>[31m
+                    [0m Test Connection[0m
+                  [36m</button>[31m
+                  [36m<button[31m
+                    [33mclass[31m=[32m"flex-1 bg-primary text-primary-foreground py-2 rounded-md font-medium hover:brightness-110 flex items-center justify-center gap-2"[31m
+                    [33mtype[31m=[32m"submit"[31m
+                  [36m>[31m
+                    [36m<svg[31m
+                      [33mclass[31m=[32m"lucide lucide-plus w-4 h-4"[31m
+                      [33mfill[31m=[32m"none"[31m
+                      [33mheight[31m=[32m"24"[31m
+                      [33mstroke[31m=[32m"currentColor"[31m
+                      [33mstroke-linecap[31m=[32m"round"[31m
+                      [33mstroke-linejoin[31m=[32m"round"[31m
+                      [33mstroke-width[31m=[32m"2"[31m
+                      [33mviewBox[31m=[32m"0 0 24 24"[31m
+                      [33mwidth[31m=[32m"24"[31m
+                      [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+                    [36m>[31m
+                      [36m<path[31m
+                        [33md[31m=[32m"M5 12h14"[31m
+                      [36m/>[31m
+                      [36m<path[31m
+                        [33md[31m=[32m"M12 5v14"[31m
+                      [36m/>[31m
+                    [36m</svg>[31m
+                    [0m Save Source[0m
+                  [36m</button>[31m
+                [36m</div>[31m
+              [36m</form>[31m
+            [36m</div>[31m
+            [36m<div[31m
+              [33mclass[31m=[32m"bg-card p-6 rounded-lg border border-border shadow-sm"[31m
+            [36m>[31m
+              [36m<h2[31m
+                [33mclass[31m=[32m"text-lg font-semibold mb-4"[31m
+              [36m>[31m
+                [0mSaved Connections[0m
+              [36m</h2>[31m
+              [36m<div[31m
+                [33mclass[31m=[32m"flex justify-center p-8"[31m
+              [36m>[31m
+                [36m<svg[31m
+                  [33mclass[31m=[32m"lucide lucide-loader-circle h-6 w-6 animate-spin text-muted-foreground"[31m
+                  [33mfill[31m=[32m"none"[31m
+                  [33mheight[31m=[32m"24"[31m
+                  [33mstroke[31m=[32m"currentColor"[31m
+                  [33mstroke-linecap[31m=[32m"round"[31m
+                  [33mstroke-linejoin[31m=[32m"round"[31m
+                  [33mstroke-width[31m=[32m"2"[31m
+                  [33mviewBox[31m=[32m"0 0 24 24"[31m
+                  [33mwidth[31m=[32m"24"[31m
+                  [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+                [36m>[31m
+                  [36m<path[31m
+                    [33md[31m=[32m"M21 12a9 9 0 1 1-6.219-8.56"[31m
+                  [36m/>[31m
+                [36m</svg>[31m
+              [36m</div>[31m
+            [36m</div>[31m
+          [36m</div>[31m
+        [36m</div>[31m
+      [36m</div>[31m
+    [36m</div>[31m
+  [36m</div>[31m
+[36m</body>[31m[39m
+[90mstderr[2m | src/pages/Login.test.tsx[2m > [22m[2mLogin Component[2m > [22m[2mrenders login form correctly
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ [32m✓[39m src/pages/Login.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 398[2mms[22m[39m
+[90mstderr[2m | src/pages/Dashboard.test.tsx[2m > [22m[2mDashboard Component (Analytics)[2m > [22m[2mrenders instruction banner for normal users
+[22m[39m⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+
+ [32m✓[39m src/pages/Dashboard.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 155[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m src/pages/DataIntegration.test.tsx[2m > [22mDataIntegration Component (Pipeline Builder)[2m > [22mrenders tabs and correctly displays default Connections tab
+[31m[1mTestingLibraryElementError[22m[39m: Unable to find an element with the text: /Enterprise Integrations/i. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"space-y-6"[39m
+    [36m>[39m
+      [36m<div>[39m
+        [36m<h1[39m
+          [33mclass[39m=[32m"text-2xl font-bold text-foreground flex items-center gap-2"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33mclass[39m=[32m"lucide lucide-database-zap h-6 w-6 text-primary"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"24"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"24"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<ellipse[39m
+              [33mcx[39m=[32m"12"[39m
+              [33mcy[39m=[32m"5"[39m
+              [33mrx[39m=[32m"9"[39m
+              [33mry[39m=[32m"3"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M3 5V19A9 3 0 0 0 15 21.84"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M21 5V8"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M21 12L18 17H22L19 22"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M3 12A9 3 0 0 0 14.59 14.87"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0mData Integration[0m
+        [36m</h1>[39m
+        [36m<p[39m
+          [33mclass[39m=[32m"text-muted-foreground mt-1"[39m
+        [36m>[39m
+          [0mConnect to external databases and build transformation pipelines (ETL).[0m
+        [36m</p>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"inline-flex flex-wrap space-x-1 p-1 bg-muted/50 rounded-xl border border-border/40 mb-8 shadow-sm"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all bg-background text-foreground shadow-sm"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33mclass[39m=[32m"lucide lucide-server w-4 h-4"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"24"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"24"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<rect[39m
+                [33mheight[39m=[32m"8"[39m
+                [33mrx[39m=[32m"2"[39m
+                [33mry[39m=[32m"2"[39m
+                [33mwidth[39m=[32m"20"[39m
+                [33mx[39m=[32m"2"[39m
+                [33my[39m=[32m"2"[39m
+              [36m/>[39m
+              [36m<rect[39m
+                [33mheight[39m=[32m"8"[39m
+                [33mrx[39m=[32m"2"[39m
+                [33mry[39m=[32m"2"[39m
+                [33mwidth[39m=[32m"20"[39m
+                [33mx[39m=[32m"2"[39m
+                [33my[39m=[32m"14"[39m
+              [36m/>[39m
+              [36m<line[39m
+                [33mx1[39m=[32m"6"[39m
+                [33mx2[39m=[32m"6.01"[39m
+                [33my1[39m=[32m"6"[39m
+                [33my2[39m=[32m"6"[39m
+              [36m/>[39m
+              [36m<line[39m
+                [33mx1[39m=[32m"6"[39m
+                [33mx2[39m=[32m"6.01"[39m
+                [33my1[39m=[32m"18"[39m
+                [33my2[39m=[32m"18"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [0m Relational Connections[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all text-muted-foreground hover:bg-white/5 hover:text-foreground"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33mclass[39m=[32m"lucide lucide-link w-4 h-4"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"24"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"24"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [0m ERP API Push/Pull[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all text-muted-foreground hover:bg-white/5 hover:text-foreground"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33mclass[39m=[32m"lucide lucide-database-zap w-4 h-4"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"24"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"24"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<ellipse[39m
+                [33mcx[39m=[32m"12"[39m
+                [33mcy[39m=[32m"5"[39m
+                [33mrx[39m=[32m"9"[39m
+                [33mry[39m=[32m"3"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M3 5V19A9 3 0 0 0 15 21.84"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M21 5V8"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M21 12L18 17H22L19 22"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M3 12A9 3 0 0 0 14.59 14.87"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [0m Transformation Pipeline[0m
+          [36m</button>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"animate-in fade-in slide-in-from-bottom-4 duration-500 ease-in-out"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 gap-6"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"bg-card p-6 rounded-lg border border-border shadow-sm"[39m
+            [36m>[39m
+              [36m<h2[39m
+                [33mclass[39m=[32m"text-lg font-semibold mb-4 flex items-center"[39m
+              [36m>[39m
+                [0mTambah Database[0m
+                [36m<span[39m
+                  [33mclass[39m=[32m"inline-flex items-center ml-1.5 cursor-help text-muted-foreground hover:text-primary transition-colors focus:outline-none"[39m
+                  [33mdata-state[39m=[32m"closed"[39m
+                  [33mtabindex[39m=[32m"0"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33mclass[39m=[32m"lucide lucide-circle-help w-3.5 h-3.5"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"24"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"2"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"24"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<circle[39m
+                      [33mcx[39m=[32m"12"[39m
+                      [33mcy[39m=[32m"12"[39m
+                      [33mr[39m=[32m"10"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M12 17h.01"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+              [36m</h2>[39m
+              [36m<form[39m
+                [33mclass[39m=[32m"space-y-4"[39m
+              [36m>[39m
+                [36m<div>[39m
+                  [36m<label[39m
+                    [33mclass[39m=[32m"block text-sm font-medium mb-1 flex items-center"[39m
+                  [36m>[39m
+                    [0mNama Koneksi [0m
+                    [36m<span[39m
+                      [33mclass[39m=[32m"inline-flex items-center ml-1.5 cursor-help text-muted-foreground hover:text-primary transition-colors focus:outline-none"[39m
+                      [33mdata-state[39m=[32m"closed"[39m
+                      [33mtabindex[39m=[32m"0"[39m
+                    [36m>[39m
+                      [36m<svg[39m
+                        [33mclass[39m=[32m"lucide lucide-circle-help w-3.5 h-3.5"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"24"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"24"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<circle[39m
+                          [33mcx[39m=[32m"12"[39m
+                          [33mcy[39m=[32m"12"[39m
+                          [33mr[39m=[32m"10"[39m
+                        [36m/>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"[39m
+                        [36m/>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M12 17h.01"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</span>[39m
+                  [36m</label>[39m
+                  [36m<input[39m
+                    [33mclass[39m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[39m
+                    [33mrequired[39m=[32m""[39m
+                    [33mtype[39m=[32m"text"[39m
+                    [33mvalue[39m=[32m""[39m
+                  [36m/>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"grid grid-cols-2 gap-4"[39m
+                [36m>[39m
+                  [36m<div>[39m
+                    [36m<label[39m
+                      [33mclass[39m=[32m"block text-sm font-medium mb-1"[39m
+                    [36m>[39m
+                      [0mProvider[0m
+                    [36m</label>[39m
+                    [36m<select[39m
+                      [33mclass[39m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[39m
+                    [36m>[39m
+                      [36m<option[39m
+                        [33mvalue[39m=[32m"postgresql"[39m
+                      [36m>[39m
+                        [0mPostgreSQL[0m
+                      [36m</option>[39m
+                      [36m<option[39m
+                        [33mvalue[39m=[32m"mysql"[39m
+                      [36m>[39m
+                        [0mMySQL[0m
+                      [36m</option>[39m
+                    [36m</select>[39m
+                  [36m</div>[39m
+                  [36m<div>[39m
+                    [36m<label[39m
+                      [33mclass[39m=[32m"block text-sm font-medium mb-1"[39m
+                    [36m>[39m
+                      [0mHost[0m
+                    [36m</label>[39m
+                    [36m<input[39m
+                      [33mclass[39m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[39m
+                      [33mrequired[39m=[32m""[39m
+                      [33mtype[39m=[32m"text"[39m
+                      [33mvalue[39m=[32m"localhost"[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"grid grid-cols-2 gap-4"[39m
+                [36m>[39m
+                  [36m<div>[39m
+                    [36m<label[39m
+                      [33mclass[39m=[32m"block text-sm font-medium mb-1"[39m
+                    [36m>[39m
+                      [0mPort[0m
+                    [36m</label>[39m
+                    [36m<input[39m
+                      [33mclass[39m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[39m
+                      [33mrequired[39m=[32m""[39m
+                      [33mtype[39m=[32m"number"[39m
+                      [33mvalue[39m=[32m"5432"[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                  [36m<div>[39m
+                    [36m<label[39m
+                      [33mclass[39m=[32m"block text-sm font-medium mb-1"[39m
+                    [36m>[39m
+                      [0mDatabase[0m
+                    [36m</label>[39m
+                    [36m<input[39m
+                      [33mclass[39m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[39m
+                      [33mrequired[39m=[32m""[39m
+                      [33mtype[39m=[32m"text"[39m
+                      [33mvalue[39m=[32m""[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"grid grid-cols-2 gap-4"[39m
+                [36m>[39m
+                  [36m<div>[39m
+                    [36m<label[39m
+                      [33mclass[39m=[32m"block text-sm font-medium mb-1"[39m
+                    [36m>[39m
+                      [0mUsername[0m
+                    [36m</label>[39m
+                    [36m<input[39m
+                      [33mclass[39m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[39m
+                      [33mrequired[39m=[32m""[39m
+                      [33mtype[39m=[32m"text"[39m
+                      [33mvalue[39m=[32m""[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                  [36m<div>[39m
+                    [36m<label[39m
+                      [33mclass[39m=[32m"block text-sm font-medium mb-1"[39m
+                    [36m>[39m
+                      [0mPassword[0m
+                    [36m</label>[39m
+                    [36m<input[39m
+                      [33mclass[39m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[39m
+                      [33mrequired[39m=[32m""[39m
+                      [33mtype[39m=[32m"password"[39m
+                      [33mvalue[39m=[32m""[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"flex gap-3 pt-2"[39m
+                [36m>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"flex-1 bg-secondary text-secondary-foreground py-2 rounded-md font-medium hover:brightness-110 flex items-center justify-center gap-2"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [0m Test Connection[0m
+                  [36m</button>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"flex-1 bg-primary text-primary-foreground py-2 rounded-md font-medium hover:brightness-110 flex items-center justify-center gap-2"[39m
+                    [33mtype[39m=[32m"submit"[39m
+                  [36m>[39m
+                    [36m<svg[39m
+                      [33mclass[39m=[32m"lucide lucide-plus w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+                      [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M5 12h14"[39m
+                      [36m/>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M12 5v14"[39m
+                      [36m/>[39m
+                    [36m</svg>[39m
+                    [0m Save Source[0m
+                  [36m</button>[39m
+                [36m</div>[39m
+              [36m</form>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"bg-card p-6 rounded-lg border border-border shadow-sm"[39m
+            [36m>[39m
+              [36m<h2[39m
+                [33mclass[39m=[32m"text-lg font-semibold mb-4"[39m
+              [36m>[39m
+                [0mSaved Connections[0m
+              [36m</h2>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex justify-center p-8"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mclass[39m=[32m"lucide lucide-loader-circle h-6 w-6 animate-spin text-muted-foreground"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M21 12a9 9 0 1 1-6.219-8.56"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+[90m [2m❯[22m Object.getElementError node_modules/@testing-library/dom/dist/config.js:[2m37:19[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m76:38[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m52:17[22m[39m
+[90m [2m❯[22m getByText node_modules/@testing-library/dom/dist/query-helpers.js:[2m95:19[22m[39m
+[36m [2m❯[22m src/pages/DataIntegration.test.tsx:[2m51:23[22m[39m
+    [90m 49| [39m        [34mrenderWithProvider[39m([33m<[39m[33mDataIntegration[39m [33m/[39m[33m>[39m)[33m;[39m
+    [90m 50| [39m
+    [90m 51| [39m        expect(screen.getByText(/Enterprise Integrations/i)).toBeInThe…
+    [90m   | [39m                      [31m^[39m
+    [90m 52| [39m
+    [90m 53| [39m        [90m// Assert elements on DataSource tab[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/pages/DataIntegration.test.tsx[2m > [22mDataIntegration Component (Pipeline Builder)[2m > [22mswitches to Pipeline builder tab successfully
+[31m[1mTestingLibraryElementError[22m[39m: Found multiple elements with the text: /Transformation Pipeline/i
+
+Here are the matching elements:
+
+Ignored nodes: comments, script, style
+[36m<p[39m
+  [33mclass[39m=[32m"text-muted-foreground mt-1"[39m
+[36m>[39m
+  [0mConnect to external databases and build transformation pipelines (ETL).[0m
+[36m</p>[39m
+
+Ignored nodes: comments, script, style
+[36m<button[39m
+  [33mclass[39m=[32m"flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all text-muted-foreground hover:bg-white/5 hover:text-foreground"[39m
+[36m>[39m
+  [36m<svg[39m
+    [33mclass[39m=[32m"lucide lucide-database-zap w-4 h-4"[39m
+    [33mfill[39m=[32m"none"[39m
+    [33mheight[39m=[32m"24"[39m
+    [33mstroke[39m=[32m"currentColor"[39m
+    [33mstroke-linecap[39m=[32m"round"[39m
+    [33mstroke-linejoin[39m=[32m"round"[39m
+    [33mstroke-width[39m=[32m"2"[39m
+    [33mviewBox[39m=[32m"0 0 24 24"[39m
+    [33mwidth[39m=[32m"24"[39m
+    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+  [36m>[39m
+    [36m<ellipse[39m
+      [33mcx[39m=[32m"12"[39m
+      [33mcy[39m=[32m"5"[39m
+      [33mrx[39m=[32m"9"[39m
+      [33mry[39m=[32m"3"[39m
+    [36m/>[39m
+    [36m<path[39m
+      [33md[39m=[32m"M3 5V19A9 3 0 0 0 15 21.84"[39m
+    [36m/>[39m
+    [36m<path[39m
+      [33md[39m=[32m"M21 5V8"[39m
+    [36m/>[39m
+    [36m<path[39m
+      [33md[39m=[32m"M21 12L18 17H22L19 22"[39m
+    [36m/>[39m
+    [36m<path[39m
+      [33md[39m=[32m"M3 12A9 3 0 0 0 14.59 14.87"[39m
+    [36m/>[39m
+  [36m</svg>[39m
+  [0m Transformation Pipeline[0m
+[36m</button>[39m
+
+(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"space-y-6"[39m
+    [36m>[39m
+      [36m<div>[39m
+        [36m<h1[39m
+          [33mclass[39m=[32m"text-2xl font-bold text-foreground flex items-center gap-2"[39m
+        [36m>[39m
+          [36m<svg[39m
+            [33mclass[39m=[32m"lucide lucide-database-zap h-6 w-6 text-primary"[39m
+            [33mfill[39m=[32m"none"[39m
+            [33mheight[39m=[32m"24"[39m
+            [33mstroke[39m=[32m"currentColor"[39m
+            [33mstroke-linecap[39m=[32m"round"[39m
+            [33mstroke-linejoin[39m=[32m"round"[39m
+            [33mstroke-width[39m=[32m"2"[39m
+            [33mviewBox[39m=[32m"0 0 24 24"[39m
+            [33mwidth[39m=[32m"24"[39m
+            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+          [36m>[39m
+            [36m<ellipse[39m
+              [33mcx[39m=[32m"12"[39m
+              [33mcy[39m=[32m"5"[39m
+              [33mrx[39m=[32m"9"[39m
+              [33mry[39m=[32m"3"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M3 5V19A9 3 0 0 0 15 21.84"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M21 5V8"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M21 12L18 17H22L19 22"[39m
+            [36m/>[39m
+            [36m<path[39m
+              [33md[39m=[32m"M3 12A9 3 0 0 0 14.59 14.87"[39m
+            [36m/>[39m
+          [36m</svg>[39m
+          [0mData Integration[0m
+        [36m</h1>[39m
+        [36m<p[39m
+          [33mclass[39m=[32m"text-muted-foreground mt-1"[39m
+        [36m>[39m
+          [0mConnect to external databases and build transformation pipelines (ETL).[0m
+        [36m</p>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"inline-flex flex-wrap space-x-1 p-1 bg-muted/50 rounded-xl border border-border/40 mb-8 shadow-sm"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all bg-background text-foreground shadow-sm"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33mclass[39m=[32m"lucide lucide-server w-4 h-4"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"24"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"24"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<rect[39m
+                [33mheight[39m=[32m"8"[39m
+                [33mrx[39m=[32m"2"[39m
+                [33mry[39m=[32m"2"[39m
+                [33mwidth[39m=[32m"20"[39m
+                [33mx[39m=[32m"2"[39m
+                [33my[39m=[32m"2"[39m
+              [36m/>[39m
+              [36m<rect[39m
+                [33mheight[39m=[32m"8"[39m
+                [33mrx[39m=[32m"2"[39m
+                [33mry[39m=[32m"2"[39m
+                [33mwidth[39m=[32m"20"[39m
+                [33mx[39m=[32m"2"[39m
+                [33my[39m=[32m"14"[39m
+              [36m/>[39m
+              [36m<line[39m
+                [33mx1[39m=[32m"6"[39m
+                [33mx2[39m=[32m"6.01"[39m
+                [33my1[39m=[32m"6"[39m
+                [33my2[39m=[32m"6"[39m
+              [36m/>[39m
+              [36m<line[39m
+                [33mx1[39m=[32m"6"[39m
+                [33mx2[39m=[32m"6.01"[39m
+                [33my1[39m=[32m"18"[39m
+                [33my2[39m=[32m"18"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [0m Relational Connections[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all text-muted-foreground hover:bg-white/5 hover:text-foreground"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33mclass[39m=[32m"lucide lucide-link w-4 h-4"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"24"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"24"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [0m ERP API Push/Pull[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all text-muted-foreground hover:bg-white/5 hover:text-foreground"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33mclass[39m=[32m"lucide lucide-database-zap w-4 h-4"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"24"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"24"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<ellipse[39m
+                [33mcx[39m=[32m"12"[39m
+                [33mcy[39m=[32m"5"[39m
+                [33mrx[39m=[32m"9"[39m
+                [33mry[39m=[32m"3"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M3 5V19A9 3 0 0 0 15 21.84"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M21 5V8"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M21 12L18 17H22L19 22"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M3 12A9 3 0 0 0 14.59 14.87"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [0m Transformation Pipeline[0m
+          [36m</button>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"animate-in fade-in slide-in-from-bottom-4 duration-500 ease-in-out"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 gap-6"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"bg-card p-6 rounded-lg border border-border shadow-sm"[39m
+            [36m>[39m
+              [36m<h2[39m
+                [33mclass[39m=[32m"text-lg font-semibold mb-4 flex items-center"[39m
+              [36m>[39m
+                [0mTambah Database[0m
+                [36m<span[39m
+                  [33mclass[39m=[32m"inline-flex items-center ml-1.5 cursor-help text-muted-foreground hover:text-primary transition-colors focus:outline-none"[39m
+                  [33mdata-state[39m=[32m"closed"[39m
+                  [33mtabindex[39m=[32m"0"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33mclass[39m=[32m"lucide lucide-circle-help w-3.5 h-3.5"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"24"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+                    [33mstroke-linejoin[39m=[32m"round"[39m
+                    [33mstroke-width[39m=[32m"2"[39m
+                    [33mviewBox[39m=[32m"0 0 24 24"[39m
+                    [33mwidth[39m=[32m"24"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<circle[39m
+                      [33mcx[39m=[32m"12"[39m
+                      [33mcy[39m=[32m"12"[39m
+                      [33mr[39m=[32m"10"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"[39m
+                    [36m/>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M12 17h.01"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+              [36m</h2>[39m
+              [36m<form[39m
+                [33mclass[39m=[32m"space-y-4"[39m
+              [36m>[39m
+                [36m<div>[39m
+                  [36m<label[39m
+                    [33mclass[39m=[32m"block text-sm font-medium mb-1 flex items-center"[39m
+                  [36m>[39m
+                    [0mNama Koneksi [0m
+                    [36m<span[39m
+                      [33mclass[39m=[32m"inline-flex items-center ml-1.5 cursor-help text-muted-foreground hover:text-primary transition-colors focus:outline-none"[39m
+                      [33mdata-state[39m=[32m"closed"[39m
+                      [33mtabindex[39m=[32m"0"[39m
+                    [36m>[39m
+                      [36m<svg[39m
+                        [33mclass[39m=[32m"lucide lucide-circle-help w-3.5 h-3.5"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"24"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"24"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<circle[39m
+                          [33mcx[39m=[32m"12"[39m
+                          [33mcy[39m=[32m"12"[39m
+                          [33mr[39m=[32m"10"[39m
+                        [36m/>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"[39m
+                        [36m/>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"M12 17h.01"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</span>[39m
+                  [36m</label>[39m
+                  [36m<input[39m
+                    [33mclass[39m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[39m
+                    [33mrequired[39m=[32m""[39m
+                    [33mtype[39m=[32m"text"[39m
+                    [33mvalue[39m=[32m""[39m
+                  [36m/>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"grid grid-cols-2 gap-4"[39m
+                [36m>[39m
+                  [36m<div>[39m
+                    [36m<label[39m
+                      [33mclass[39m=[32m"block text-sm font-medium mb-1"[39m
+                    [36m>[39m
+                      [0mProvider[0m
+                    [36m</label>[39m
+                    [36m<select[39m
+                      [33mclass[39m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[39m
+                    [36m>[39m
+                      [36m<option[39m
+                        [33mvalue[39m=[32m"postgresql"[39m
+                      [36m>[39m
+                        [0mPostgreSQL[0m
+                      [36m</option>[39m
+                      [36m<option[39m
+                        [33mvalue[39m=[32m"mysql"[39m
+                      [36m>[39m
+                        [0mMySQL[0m
+                      [36m</option>[39m
+                    [36m</select>[39m
+                  [36m</div>[39m
+                  [36m<div>[39m
+                    [36m<label[39m
+                      [33mclass[39m=[32m"block text-sm font-medium mb-1"[39m
+                    [36m>[39m
+                      [0mHost[0m
+                    [36m</label>[39m
+                    [36m<input[39m
+                      [33mclass[39m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[39m
+                      [33mrequired[39m=[32m""[39m
+                      [33mtype[39m=[32m"text"[39m
+                      [33mvalue[39m=[32m"localhost"[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"grid grid-cols-2 gap-4"[39m
+                [36m>[39m
+                  [36m<div>[39m
+                    [36m<label[39m
+                      [33mclass[39m=[32m"block text-sm font-medium mb-1"[39m
+                    [36m>[39m
+                      [0mPort[0m
+                    [36m</label>[39m
+                    [36m<input[39m
+                      [33mclass[39m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[39m
+                      [33mrequired[39m=[32m""[39m
+                      [33mtype[39m=[32m"number"[39m
+                      [33mvalue[39m=[32m"5432"[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                  [36m<div>[39m
+                    [36m<label[39m
+                      [33mclass[39m=[32m"block text-sm font-medium mb-1"[39m
+                    [36m>[39m
+                      [0mDatabase[0m
+                    [36m</label>[39m
+                    [36m<input[39m
+                      [33mclass[39m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[39m
+                      [33mrequired[39m=[32m""[39m
+                      [33mtype[39m=[32m"text"[39m
+                      [33mvalue[39m=[32m""[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"grid grid-cols-2 gap-4"[39m
+                [36m>[39m
+                  [36m<div>[39m
+                    [36m<label[39m
+                      [33mclass[39m=[32m"block text-sm font-medium mb-1"[39m
+                    [36m>[39m
+                      [0mUsername[0m
+                    [36m</label>[39m
+                    [36m<input[39m
+                      [33mclass[39m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[39m
+                      [33mrequired[39m=[32m""[39m
+                      [33mtype[39m=[32m"text"[39m
+                      [33mvalue[39m=[32m""[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                  [36m<div>[39m
+                    [36m<label[39m
+                      [33mclass[39m=[32m"block text-sm font-medium mb-1"[39m
+                    [36m>[39m
+                      [0mPassword[0m
+                    [36m</label>[39m
+                    [36m<input[39m
+                      [33mclass[39m=[32m"w-full rounded-md border border-input bg-background px-3 py-2 text-sm"[39m
+                      [33mrequired[39m=[32m""[39m
+                      [33mtype[39m=[32m"password"[39m
+                      [33mvalue[39m=[32m""[39m
+                    [36m/>[39m
+                  [36m</div>[39m
+                [36m</div>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"flex gap-3 pt-2"[39m
+                [36m>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"flex-1 bg-secondary text-secondary-foreground py-2 rounded-md font-medium hover:brightness-110 flex items-center justify-center gap-2"[39m
+                    [33mtype[39m=[32m"button"[39m
+                  [36m>[39m
+                    [0m Test Connection[0m
+                  [36m</button>[39m
+                  [36m<button[39m
+                    [33mclass[39m=[32m"flex-1 bg-primary text-primary-foreground py-2 rounded-md font-medium hover:brightness-110 flex items-center justify-center gap-2"[39m
+                    [33mtype[39m=[32m"submit"[39m
+                  [36m>[39m
+                    [36m<svg[39m
+                      [33mclass[39m=[32m"lucide lucide-plus w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+                      [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                    [36m>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M5 12h14"[39m
+                      [36m/>[39m
+                      [36m<path[39m
+                        [33md[39m=[32m"M12 5v14"[39m
+                      [36m/>[39m
+                    [36m</svg>[39m
+                    [0m Save Source[0m
+                  [36m</button>[39m
+                [36m</div>[39m
+              [36m</form>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"bg-card p-6 rounded-lg border border-border shadow-sm"[39m
+            [36m>[39m
+              [36m<h2[39m
+                [33mclass[39m=[32m"text-lg font-semibold mb-4"[39m
+              [36m>[39m
+                [0mSaved Connections[0m
+              [36m</h2>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"flex justify-center p-8"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33mclass[39m=[32m"lucide lucide-loader-circle h-6 w-6 animate-spin text-muted-foreground"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M21 12a9 9 0 1 1-6.219-8.56"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+[90m [2m❯[22m Object.getElementError node_modules/@testing-library/dom/dist/config.js:[2m37:19[22m[39m
+[90m [2m❯[22m getElementError node_modules/@testing-library/dom/dist/query-helpers.js:[2m20:35[22m[39m
+[90m [2m❯[22m getMultipleElementsFoundError node_modules/@testing-library/dom/dist/query-helpers.js:[2m23:10[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m55:13[22m[39m
+[90m [2m❯[22m getByText node_modules/@testing-library/dom/dist/query-helpers.js:[2m95:19[22m[39m
+[36m [2m❯[22m src/pages/DataIntegration.test.tsx:[2m62:36[22m[39m
+    [90m 60| [39m        [34mrenderWithProvider[39m([33m<[39m[33mDataIntegration[39m [33m/[39m[33m>[39m)[33m;[39m
+    [90m 61| [39m
+    [90m 62| [39m        const pipelineTab = screen.getByText(/Transformation Pipeline/…
+    [90m   | [39m                                   [31m^[39m
+    [90m 63| [39m        fireEvent[33m.[39m[34mclick[39m(pipelineTab)[33m;[39m
+    [90m 64| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m2 passed[39m[22m[90m (3)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m6 passed[39m[22m[90m (8)[39m
+[2m   Start at [22m 20:30:13
+[2m   Duration [22m 2.93s[2m (transform 477ms, setup 299ms, collect 2.83s, tests 742ms, environment 1.72s, prepare 316ms)[22m
+

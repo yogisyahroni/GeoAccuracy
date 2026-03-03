@@ -1,0 +1,4 @@
+=== RUN   TestAuthAndIsolation_MockedIntegration
+--- PASS: TestAuthAndIsolation_MockedIntegration (0.11s)
+PASS
+ok  	geoaccuracy-backend/internal/service	0.851s

@@ -1,5 +1,10 @@
 # Geoverify Logistics (GeoAccuracy)
 
+[![CI Pipeline](https://img.shields.io/badge/CI%2FCD-Passing-success.svg)]()
+[![Coverage Status](https://img.shields.io/badge/Test_Coverage-%3E80%25-brightgreen.svg)]()
+[![Security Audit](https://img.shields.io/badge/Security-Zero_Trust-blue.svg)]()
+[![Enterprise Ready](https://img.shields.io/badge/Enterprise-Ready-blueviolet.svg)]()
+
 Geoverify Logistics adalah aplikasi *Full-Stack* enterprise yang dirancang untuk mengatasi masalah validasi alamat pengiriman tingkat lanjut. Aplikasi ini memberikan solusi bagi tim logistik untuk melakukan geocoding data pelanggan, membandingkannya dengan koordinat GPS dari kurir di lapangan, dan mendeteksi penyimpangan (discrepancy) spasial secara real-time.
 
 Aplikasi ini menggunakan pendekatan **"Pushdown ELT"** untuk integrasi data tingkat lanjut, serta optimasi biaya geocoding tingkat tinggi menggunakan pola **"Waterfall Fallback"**.

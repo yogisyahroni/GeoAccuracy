@@ -1,0 +1,10 @@
+=== RUN   TestAuthAndIsolation_MockedIntegration
+    auth_integration_test.go:75: 
+        	Error Trace:	e:/antigraviti google/project_putra/geoverify-logistics/backend/internal/service/auth_integration_test.go:75
+        	Error:      	Received unexpected error:
+        	            	Query: could not match actual sql: "SELECT id, name, email, password_hash, role, created_at, updated_at FROM users WHERE email = LOWER($1)" with expected regexp "SELECT id, name, email, password_hash, role, created_at, updated_at FROM users WHERE email = \$1"
+        	Test:       	TestAuthAndIsolation_MockedIntegration
+--- FAIL: TestAuthAndIsolation_MockedIntegration (0.08s)
+FAIL
+FAIL	geoaccuracy-backend/internal/service	0.928s
+FAIL
