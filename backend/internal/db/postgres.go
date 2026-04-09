@@ -13,15 +13,27 @@ import (
 
 func ConnectPostgres(cfg *config.Config) (*sql.DB, error) {
 	sslMode := "disable"
-	// Supabase requires SSL regardless of environment
-	if cfg.AppEnv == "production" || strings.Contains(cfg.DBHost, "supabase.co") {
+	// Supabase and production environments require SSL
+	if cfg.AppEnv == "production" || strings.Contains(cfg.DBHost, "supabase.") || strings.Contains(cfg.DatabaseURL, "supabase.") {
 		sslMode = "require"
 	}
 
-	dsn := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName, sslMode,
-	)
+	dsn := cfg.DatabaseURL
+	if dsn == "" {
+		dsn = fmt.Sprintf(
+			"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+			cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName, sslMode,
+		)
+	} else {
+		// If using DATABASE_URL, ensure sslmode is set if we are in production or Supabase
+		if (cfg.AppEnv == "production" || strings.Contains(cfg.DatabaseURL, "supabase.")) && !strings.Contains(dsn, "sslmode=") {
+			if strings.Contains(dsn, "?") {
+				dsn += "&sslmode=" + sslMode
+			} else {
+				dsn += "?sslmode=" + sslMode
+			}
+		}
+	}
 
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {

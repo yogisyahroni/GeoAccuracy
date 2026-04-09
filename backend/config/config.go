@@ -15,6 +15,7 @@ type Config struct {
 	DBUser           string
 	DBPassword       string
 	DBName           string
+	DatabaseURL      string
 	RedisURL         string
 	JWTSecret        string
 	AESEncryptionKey string
@@ -35,6 +36,7 @@ func LoadConfig() *Config {
 		DBUser:           getEnv("DB_USER", "postgres"),
 		DBPassword:       getEnv("DB_PASSWORD", "postgres"),
 		DBName:           getEnv("DB_NAME", "geoaccuracy"),
+		DatabaseURL:      getEnv("DATABASE_URL", ""),
 		RedisURL:         getEnv("REDIS_URL", ""),
 		JWTSecret:        getEnv("JWT_SECRET", "super-secret-default-key-change-in-prod"),
 		AESEncryptionKey: getEnv("AES_ENCRYPTION_KEY", "0123456789abcdef0123456789abcdef"),
