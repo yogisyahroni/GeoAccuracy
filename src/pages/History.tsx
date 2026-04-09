@@ -1,6 +1,27 @@
-import { useEffect, useState } from 'react';
-import { History, ChevronLeft, ChevronRight, CheckCircle, AlertCircle } from 'lucide-react';
-import { historyApi, type ComparisonSession } from '@/lib/api';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { History, ChevronLeft, ChevronRight, CheckCircle, AlertCircle, Eye, Trash2, Loader2 } from 'lucide-react';
+import { historyApi, batchApi, type ComparisonSession } from '@/lib/api';
+import { toast } from 'sonner';
+
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ComparisonTable } from '@/components/ComparisonTable';
+import { Button } from '@/components/ui/button';
 
 function formatDate(iso: string) {
     return new Date(iso).toLocaleString('id-ID', {
@@ -25,25 +46,40 @@ function AccuracyBar({ accurate, fairly, inaccurate, error, total }: {
 }
 
 export default function HistoryPage() {
-    const [sessions, setSessions] = useState<ComparisonSession[]>([]);
-    const [total, setTotal] = useState(0);
+    const queryClient = useQueryClient();
     const [page, setPage] = useState(1);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const pageSize = 20;
 
-    useEffect(() => {
-        setLoading(true);
-        setError(null);
-        historyApi.listSessions(page, pageSize)
-            .then(res => {
-                setSessions(res.sessions);
-                setTotal(res.total);
-            })
-            .catch(err => setError(err.message ?? 'Gagal memuat riwayat'))
-            .finally(() => setLoading(false));
-    }, [page]);
+    // Modal states
+    const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
+    const [deleteSessionId, setDeleteSessionId] = useState<number | null>(null);
 
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['history', page],
+        queryFn: () => historyApi.listSessions(page, pageSize),
+    });
+
+    const { data: sessionDetails, isLoading: isLoadingDetails } = useQuery({
+        queryKey: ['session-details', selectedSessionId],
+        queryFn: () => batchApi.getBatchResults(selectedSessionId!.toString()),
+        enabled: !!selectedSessionId,
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: (id: number) => batchApi.deleteBatch(id.toString()),
+        onSuccess: () => {
+            toast.success('Sesi berhasil dihapus');
+            queryClient.invalidateQueries({ queryKey: ['history'] });
+            queryClient.invalidateQueries({ queryKey: ['analytics'] });
+            setDeleteSessionId(null);
+        },
+        onError: (err: any) => {
+            toast.error(err.message || 'Gagal menghapus sesi');
+        }
+    });
+
+    const total = data?.total || 0;
+    const sessions = data?.sessions || [];
     const totalPages = Math.ceil(total / pageSize);
 
     return (
@@ -63,7 +99,9 @@ export default function HistoryPage() {
                     style={{ background: 'hsl(var(--destructive) / 0.05)', borderColor: 'hsl(var(--destructive) / 0.3)' }}
                 >
                     <AlertCircle className="w-4 h-4" style={{ color: 'hsl(var(--destructive))' }} />
-                    <p className="text-sm" style={{ color: 'hsl(var(--destructive))' }}>{error}</p>
+                    <p className="text-sm" style={{ color: 'hsl(var(--destructive))' }}>
+                        {error instanceof Error ? error.message : 'Gagal memuat riwayat'}
+                    </p>
                 </div>
             )}
 
@@ -73,7 +111,7 @@ export default function HistoryPage() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="border-b" style={{ borderColor: 'hsl(var(--border))' }}>
-                                {['#', 'Waktu', 'Total', 'Akurat', 'Cukup', 'Tidak Akurat', 'Error', 'Akurasi'].map(h => (
+                                {['#', 'Waktu', 'Total', 'Akurat', 'Cukup', 'Tidak Akurat', 'Error', 'Akurasi', 'Aksi'].map(h => (
                                     <th
                                         key={h}
                                         className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
@@ -85,10 +123,10 @@ export default function HistoryPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {loading ? (
+                            {isLoading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
                                     <tr key={i}>
-                                        {Array.from({ length: 8 }).map((_, j) => (
+                                        {Array.from({ length: 9 }).map((_, j) => (
                                             <td key={j} className="px-4 py-3">
                                                 <div className="h-3 rounded animate-pulse" style={{ background: 'hsl(var(--muted) / 0.6)', width: `${40 + (j * 15) % 40}%` }} />
                                             </td>
@@ -97,14 +135,14 @@ export default function HistoryPage() {
                                 ))
                             ) : sessions.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-4 py-12 text-center text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                                    <td colSpan={9} className="px-4 py-12 text-center text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>
                                         Belum ada riwayat. Jalankan compare di Dashboard untuk mulai merekam.
                                     </td>
                                 </tr>
                             ) : sessions.map((s, idx) => (
                                 <tr
                                     key={s.id}
-                                    className="border-b transition-colors hover:brightness-110"
+                                    className="border-b transition-colors hover:bg-primary/5"
                                     style={{ borderColor: 'hsl(var(--border) / 0.4)' }}
                                 >
                                     <td className="px-4 py-3 font-mono text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
@@ -132,6 +170,28 @@ export default function HistoryPage() {
                                                     {Math.round((s.accurate_count / s.total_count) * 100)}%
                                                 </span>
                                             )}
+                                        </div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+                                                onClick={() => setSelectedSessionId(s.id)}
+                                                title="Lihat Detail"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                onClick={() => setDeleteSessionId(s.id)}
+                                                title="Hapus Sesi"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
                                         </div>
                                     </td>
                                 </tr>
@@ -185,6 +245,65 @@ export default function HistoryPage() {
                     </div>
                 ))}
             </div>
+
+            {/* Detail Dialog */}
+            <Dialog open={!!selectedSessionId} onOpenChange={(open) => !open && setSelectedSessionId(null)}>
+                <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col p-0">
+                    <DialogHeader className="p-6 border-b">
+                        <DialogTitle className="flex items-center gap-2">
+                            <Eye className="w-5 h-5 text-primary" />
+                            Detail Sesi — {selectedSessionId && sessions.find(s => s.id === selectedSessionId)?.created_at ? formatDate(sessions.find(s => s.id === selectedSessionId)!.created_at) : ''}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="flex-1 overflow-y-auto p-6 bg-background/50">
+                        {isLoadingDetails ? (
+                            <div className="h-64 flex flex-col items-center justify-center gap-3">
+                                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                                <p className="text-sm text-muted-foreground">Memuat data...</p>
+                            </div>
+                        ) : sessionDetails ? (
+                            <ComparisonTable
+                                results={sessionDetails.map(item => ({
+                                    connote: item.connote,
+                                    recipientName: item.recipient_name,
+                                    systemAddress: item.system_address,
+                                    systemLat: item.system_lat || undefined,
+                                    systemLng: item.system_lng || undefined,
+                                    fieldLat: item.field_lat || undefined,
+                                    fieldLng: item.field_lng || undefined,
+                                    distanceMeters: item.distance_km ? item.distance_km * 1000 : undefined,
+                                    category: item.accuracy_level as any,
+                                    geocodeStatus: item.geocode_status as any,
+                                }))}
+                            />
+                        ) : (
+                            <p className="text-center py-12 text-muted-foreground">Data tidak ditemukan.</p>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation */}
+            <AlertDialog open={!!deleteSessionId} onOpenChange={(open) => !open && setDeleteSessionId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Hapus Sesi Riwayat?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tindakan ini tidak dapat dibatalkan. Sesi ini akan dihapus permanen dari riwayat dan statistik analitik Anda.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Batal</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => deleteSessionId && deleteMutation.mutate(deleteSessionId)}
+                            disabled={deleteMutation.isPending}
+                        >
+                            {deleteMutation.isPending ? 'Menghapus...' : 'Hapus'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

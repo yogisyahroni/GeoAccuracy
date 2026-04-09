@@ -493,4 +493,10 @@ export const batchApi = {
     getBatchResults: async (batchId: string): Promise<BatchItem[]> => {
         return request<BatchItem[]>('GET', `/api/batches/${batchId}/results`);
     },
+    getBatch: async (batchId: string): Promise<Batch> => {
+        return request<Batch>('GET', `/api/batches/${batchId}`);
+    },
+    deleteBatch: async (batchId: string): Promise<void> => {
+        return request<void>('DELETE', `/api/batches/${batchId}`);
+    },
 };
