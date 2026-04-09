@@ -40,7 +40,7 @@ func LoadConfig() *Config {
 		RedisURL:         getEnv("REDIS_URL", ""),
 		JWTSecret:        getEnv("JWT_SECRET", "super-secret-default-key-change-in-prod"),
 		AESEncryptionKey: getEnv("AES_ENCRYPTION_KEY", "0123456789abcdef0123456789abcdef"),
-		AllowedOrigins:   getEnv("ALLOWED_ORIGINS", "http://localhost:8080,http://localhost:5173"),
+		AllowedOrigins:   getEnv("ALLOWED_ORIGINS", "https://geo-accuracy.vercel.app,http://localhost:8080,http://localhost:5173"),
 	}
 
 	if cfg.AppEnv == "production" {
