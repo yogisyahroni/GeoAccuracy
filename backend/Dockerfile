@@ -17,18 +17,20 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o server ./cmd/server/main.go
 
 # Production Stage
-FROM gcr.io/distroless/base-debian12:latest-amd64
+# Use the explicit :nonroot variant for better permission handling
+FROM gcr.io/distroless/base-debian12:nonroot-amd64
 
+# Set working directory to root / as before, but with proper binary ownership
 WORKDIR /
 
-# Copy the pre-built binary
-COPY --from=builder /app/server /server
+# Copy the pre-built binary with explicit ownership for the nonroot user (UID 65532)
+COPY --from=builder --chown=65532:65532 /app/server /server
 
 # Expose port (default 8081 for backend)
 EXPOSE 8081
 
-# Run as non-root user for security (UID 65532 is the 'nonroot' user in distroless)
+# Run as non-root user (explicitly set though 'nonroot' image does this by default)
 USER 65532:65532
 
-# Command to run
-CMD ["/server"]
+# Command to run (using absolute path for safety)
+ENTRYPOINT ["/server"]
