@@ -12,6 +12,7 @@ import {
     ChevronRight,
     User,
     Database,
+    Map,
     MapPin,
     TrendingUp,
     FileText,
@@ -61,10 +62,14 @@ export function Sidebar() {
                 style={{ borderColor: 'hsl(var(--border) / 0.4)' }}
             >
                 <div
-                    className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: 'hsl(var(--primary) / 0.15)', border: '1px solid hsl(var(--primary) / 0.3)' }}
+                    className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border"
+                    style={{ 
+                        background: 'linear-gradient(135deg, hsl(var(--primary) / 0.2), hsl(var(--primary) / 0.05))',
+                        borderColor: 'hsl(var(--primary) / 0.3)',
+                        boxShadow: '0 0 12px hsl(var(--primary) / 0.1)'
+                    }}
                 >
-                    <Truck className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />
+                    <Map className="w-4 h-4" style={{ color: 'hsl(var(--primary))' }} />
                 </div>
                 <AnimatePresence>
                     {!collapsed && (

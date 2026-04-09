@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Loader2, UserPlus, Truck, Eye, EyeOff } from 'lucide-react';
+import { Loader2, UserPlus, Map, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { authApi, ApiError } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -147,7 +147,7 @@ const Register = () => {
                             boxShadow: '0 0 32px hsl(var(--primary) / 0.15)',
                         }}
                     >
-                        <Truck className="w-7 h-7" style={{ color: 'hsl(var(--primary))' }} />
+                        <Map className="w-7 h-7" style={{ color: 'hsl(var(--primary))' }} />
                     </div>
                     <div className="text-center">
                         <h1 className="text-2xl font-bold tracking-tight nav-logo-text">
