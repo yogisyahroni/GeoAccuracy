@@ -44,15 +44,19 @@ func LoadConfig() *Config {
 	}
 
 	if cfg.AppEnv == "production" {
-		if os.Getenv("JWT_SECRET") == "" {
-			log.Fatal("JWT_SECRET must be set in production")
+		// Detect if using default insecure key or empty
+		if os.Getenv("JWT_SECRET") == "" || cfg.JWTSecret == "super-secret-default-key-change-in-prod" {
+			log.Fatal("CRITICAL SECURITY ERROR: JWT_SECRET must be set to a unique, secure value in production. Default placeholder detected.")
+		}
+		if os.Getenv("AES_ENCRYPTION_KEY") == "" || cfg.AESEncryptionKey == "0123456789abcdef0123456789abcdef" {
+			log.Fatal("CRITICAL SECURITY ERROR: AES_ENCRYPTION_KEY must be set to a unique, secure value in production. Default placeholder detected.")
 		}
 		if os.Getenv("DB_PASSWORD") == "" {
 			log.Fatal("DB_PASSWORD must be set in production")
 		}
 		// ALLOWED_ORIGINS: warn but don't fatal — allows recovery
 		if os.Getenv("ALLOWED_ORIGINS") == "" {
-			log.Println("[WARN] ALLOWED_ORIGINS not set in production — using permissive default")
+			log.Println("[WARN] ALLOWED_ORIGINS not set in production — using permissive internal default")
 		}
 	}
 

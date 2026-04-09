@@ -50,9 +50,11 @@ func CORSMiddleware(allowedOrigins string) gin.HandlerFunc {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", requestOrigin)
 			c.Writer.Header().Set("Vary", "Origin") // Required for CDN caching correctness
 		} else if requestOrigin != "" {
+			// Sanitize for logging to prevent CRLF/log injection
+			sanitizedOrigin := strings.NewReplacer("\r", "", "\n", "").Replace(requestOrigin)
 			// Log unallowed origins in production to help debug CORS mismatches
 			// but don't set the header, allowing browser to block it.
-			gin.DefaultWriter.Write([]byte("[CORS] Blocked origin: " + requestOrigin + "\n"))
+			gin.DefaultWriter.Write([]byte("[CORS] Blocked origin: " + sanitizedOrigin + "\n"))
 		}
 
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")

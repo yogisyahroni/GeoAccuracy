@@ -27,5 +27,8 @@ COPY --from=builder /app/server /server
 # Expose port (default 8081 for backend)
 EXPOSE 8081
 
+# Run as non-root user for security (UID 65532 is the 'nonroot' user in distroless)
+USER 65532:65532
+
 # Command to run
 CMD ["/server"]
