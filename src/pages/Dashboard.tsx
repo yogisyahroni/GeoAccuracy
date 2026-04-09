@@ -63,13 +63,13 @@ const Dashboard = () => {
         const loadLatestBatch = async () => {
             try {
                 const batches = await batchApi.listBatches();
-                if (batches.length === 0 || !isMounted) return;
+                if (!batches || batches.length === 0 || !isMounted) return;
 
                 const latestBatch = batches[0];
                 if (latestBatch.status !== 'completed' && latestBatch.status !== 'failed') return;
 
                 const finalItems = await batchApi.getBatchResults(latestBatch.id);
-                if (finalItems.length === 0 || !isMounted) return;
+                if (!finalItems || finalItems.length === 0 || !isMounted) return;
 
                 toast.info(`Memuat riwayat terakhir: ${latestBatch.name}`);
 
@@ -177,6 +177,10 @@ const Dashboard = () => {
             try {
                 setProcessLog('Mengambil hasil pemrosesan...');
                 const finalItems = await batchApi.getBatchResults(activeBatchId);
+                if (!finalItems) {
+                    setIsProcessing(false);
+                    return;
+                }
 
                 const noFieldMap = new Map<string, ComparisonResult>();
                 systemRecords

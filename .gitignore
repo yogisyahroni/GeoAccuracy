@@ -34,3 +34,11 @@ backend/.env.production
 # Test Coverage & Reports
 coverage/
 backend/coverage.out
+
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+backend/main
+backend/server

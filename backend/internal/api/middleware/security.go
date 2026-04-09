@@ -38,33 +38,34 @@ func CORSMiddleware(allowedOrigins string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		requestOrigin := c.Request.Header.Get("Origin")
 
-		// If the request has no Origin header (e.g. direct API calls / curl),
-		// let it pass without setting CORS headers.
-		if requestOrigin == "" {
-			c.Next()
-			return
+		// Handle preflight
+		allowOrigin := ""
+		if requestOrigin != "" {
+			if originSet["*"] || originSet[requestOrigin] {
+				allowOrigin = requestOrigin
+			}
 		}
 
-		// Check if origin is in the allow-list.
-		if originSet[requestOrigin] {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", requestOrigin)
-			c.Writer.Header().Set("Vary", "Origin") // Required for CDN caching correctness
+		if allowOrigin != "" {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", allowOrigin)
+			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+			c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, Accept, Origin, Cache-Control, X-Requested-With")
+			c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
+			c.Writer.Header().Set("Vary", "Origin")
+			c.Writer.Header().Set("Access-Control-Max-Age", "86400") // 24 hours
 		} else if requestOrigin != "" {
-			// Sanitize for logging to prevent CRLF/log injection
+			// Log unallowed origins to help debug CORS mismatches
 			sanitizedOrigin := strings.NewReplacer("\r", "", "\n", "").Replace(requestOrigin)
-			// Log unallowed origins in production to help debug CORS mismatches
-			// but don't set the header, allowing browser to block it.
-			gin.DefaultWriter.Write([]byte("[CORS] Blocked origin: " + sanitizedOrigin + "\n"))
+			gin.DefaultWriter.Write([]byte("[CORS] Blocked origin: " + sanitizedOrigin + " (Allowed: " + allowedOrigins + ")\n"))
 		}
-
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers",
-			"Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, Accept, Origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
 
 		// Handle preflight request
 		if c.Request.Method == http.MethodOptions {
-			c.AbortWithStatus(http.StatusNoContent)
+			if allowOrigin != "" {
+				c.AbortWithStatus(http.StatusNoContent)
+			} else {
+				c.AbortWithStatus(http.StatusForbidden)
+			}
 			return
 		}
 

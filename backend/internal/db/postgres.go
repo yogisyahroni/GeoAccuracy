@@ -8,6 +8,9 @@ import (
 
 	"geoaccuracy-backend/config"
 
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 )
 
@@ -50,4 +53,25 @@ func ConnectPostgres(cfg *config.Config) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+// RunMigrations applies all pending SQL migrations to the database.
+// This ensures that the areas, data_sources, and batches tables exist.
+func RunMigrations(databaseURL string) error {
+	// If databaseURL contains sslmode=require, ensure it's compatible with migrate
+	// migrate expects postgres://...
+	m, err := migrate.New(
+		"file://internal/db/migrations",
+		databaseURL,
+	)
+	if err != nil {
+		return fmt.Errorf("could not create migrate instance: %w", err)
+	}
+	defer m.Close()
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("could not run up migrations: %w", err)
+	}
+
+	return nil
 }

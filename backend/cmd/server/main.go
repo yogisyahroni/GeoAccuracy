@@ -32,6 +32,16 @@ func main() {
 	defer database.Close()
 	log.Println("Connected to PostgreSQL successfully")
 
+	// 2b. Run Database Migrations
+	if cfg.DatabaseURL != "" {
+		if err := db.RunMigrations(cfg.DatabaseURL); err != nil {
+			log.Printf("Migration warning: %v", err)
+			// We don't fatal here in case migration fails but tables exist
+		} else {
+			log.Println("Database migrations applied successfully")
+		}
+	}
+
 	// 3. Setup Repositories
 	userRepo := repository.NewUserRepository(database)
 	geoRepo := repository.NewGeocodeRepository(database)
