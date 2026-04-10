@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -57,7 +58,7 @@ func CORSMiddleware(allowedOrigins string) gin.HandlerFunc {
 		} else if requestOrigin != "" {
 			// Log unallowed origins to help debug CORS mismatches
 			sanitizedOrigin := strings.NewReplacer("\r", "", "\n", "").Replace(requestOrigin)
-			gin.DefaultWriter.Write([]byte("[CORS] Blocked origin: " + sanitizedOrigin + " (Allowed: " + allowedOrigins + ")\n"))
+			fmt.Printf("[CORS DEBUG] Blocked Origin: %s | Permitted: %s\n", sanitizedOrigin, allowedOrigins)
 		}
 
 		// Handle preflight request
