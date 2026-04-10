@@ -33,7 +33,10 @@ func (h *AnalyticsHandler) GetCourierLeaderboard(c *gin.Context) {
 	leaderboard, err := h.repo.GetCourierLeaderboard(c.Request.Context(), int64(userID), limit)
 	if err != nil {
 		log.Printf("[AnalyticsHandler] GetCourierLeaderboard error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve courier leaderboard"})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to retrieve courier leaderboard",
+			"details": err.Error(),
+		})
 		return
 	}
 
@@ -57,7 +60,10 @@ func (h *AnalyticsHandler) GetSLATrends(c *gin.Context) {
 	trends, err := h.repo.GetSLATrends(c.Request.Context(), int64(userID), days)
 	if err != nil {
 		log.Printf("[AnalyticsHandler] GetSLATrends error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve SLA trends"})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to retrieve SLA trends",
+			"details": err.Error(),
+		})
 		return
 	}
 

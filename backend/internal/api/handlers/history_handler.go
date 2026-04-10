@@ -34,7 +34,10 @@ func (h *HistoryHandler) ListSessions(c *gin.Context) {
 	result, err := h.historySvc.ListSessions(userID, page, pageSize)
 	if err != nil {
 		log.Printf("ListSessions error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Gagal mengambil riwayat"})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Gagal mengambil riwayat",
+			"details": err.Error(),
+		})
 		return
 	}
 
@@ -52,7 +55,10 @@ func (h *HistoryHandler) GetAnalytics(c *gin.Context) {
 	agg, err := h.historySvc.GetAnalytics(userID)
 	if err != nil {
 		log.Printf("GetAnalytics error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Gagal mengambil data analitik"})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Gagal mengambil data analitik",
+			"details": err.Error(),
+		})
 		return
 	}
 

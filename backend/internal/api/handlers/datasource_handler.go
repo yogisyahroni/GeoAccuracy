@@ -89,8 +89,15 @@ func (h *DataSourceHandler) List(c *gin.Context) {
 
 	sources, err := h.dsService.List(c.Request.Context(), int64(userID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch data sources"})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to fetch data sources",
+			"details": err.Error(),
+		})
 		return
+	}
+
+	if sources == nil {
+		sources = []domain.DataSource{}
 	}
 
 	c.JSON(http.StatusOK, sources)

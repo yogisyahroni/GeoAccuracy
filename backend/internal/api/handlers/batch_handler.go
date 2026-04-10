@@ -35,7 +35,10 @@ func (h *BatchHandler) CreateBatch(c *gin.Context) {
 
 	batch, err := h.batchService.CreateBatch(c.Request.Context(), int64(userID), req.Name)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to create batch",
+			"details": err.Error(),
+		})
 		return
 	}
 
@@ -50,8 +53,15 @@ func (h *BatchHandler) ListBatches(c *gin.Context) {
 
 	batches, err := h.batchService.ListUserBatches(c.Request.Context(), int64(userID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to list batches",
+			"details": err.Error(),
+		})
 		return
+	}
+
+	if batches == nil {
+		batches = []domain.Batch{}
 	}
 
 	c.JSON(http.StatusOK, batches)
@@ -82,7 +92,10 @@ func (h *BatchHandler) UploadSystemData(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to upload system data",
+			"details": err.Error(),
+		})
 		return
 	}
 
@@ -114,7 +127,10 @@ func (h *BatchHandler) UploadFieldData(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to upload field data",
+			"details": err.Error(),
+		})
 		return
 	}
 
@@ -140,7 +156,10 @@ func (h *BatchHandler) ProcessBatch(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to process batch",
+			"details": err.Error(),
+		})
 		return
 	}
 
@@ -168,8 +187,15 @@ func (h *BatchHandler) GetBatchResults(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Failed to retrieve batch results",
+			"details": err.Error(),
+		})
 		return
+	}
+
+	if items == nil {
+		items = []domain.BatchItem{}
 	}
 
 	c.JSON(http.StatusOK, items)

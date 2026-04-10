@@ -57,8 +57,15 @@ func (h *ErpIntegrationHandler) List(c *gin.Context) {
 	integrations, err := h.svc.List(c.Request.Context(), int64(userID))
 	if err != nil {
 		log.Printf("ErpIntegrationHandler.List error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil daftar integrasi ERP"})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Gagal mengambil daftar integrasi ERP",
+			"details": err.Error(),
+		})
 		return
+	}
+
+	if integrations == nil {
+		integrations = []domain.ErpIntegration{}
 	}
 
 	c.JSON(http.StatusOK, integrations)

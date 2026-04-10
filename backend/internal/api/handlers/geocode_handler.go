@@ -35,7 +35,10 @@ func (h *GeocodeHandler) Geocode(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Address not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Geocoding failed",
+			"details": err.Error(),
+		})
 		return
 	}
 

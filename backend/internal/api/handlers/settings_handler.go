@@ -31,7 +31,10 @@ func (h *SettingsHandler) GetSettings(c *gin.Context) {
 	settings, err := h.settingsSvc.GetSettings(userID)
 	if err != nil {
 		log.Printf("GetSettings error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Gagal mengambil pengaturan"})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Gagal mengambil pengaturan",
+			"details": err.Error(),
+		})
 		return
 	}
 
@@ -54,7 +57,10 @@ func (h *SettingsHandler) UpdateSettings(c *gin.Context) {
 
 	if err := h.settingsSvc.UpdateSettings(userID, req); err != nil {
 		log.Printf("UpdateSettings error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Gagal menyimpan API key"})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Gagal menyimpan API key",
+			"details": err.Error(),
+		})
 		return
 	}
 

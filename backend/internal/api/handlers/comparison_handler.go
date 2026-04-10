@@ -32,7 +32,10 @@ func (h *ComparisonHandler) ValidateBatch(c *gin.Context) {
 	// Pass userID so the service can persist a session summary in history.
 	res, err := h.compService.ValidateBatch(c.Request.Context(), userID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Gagal melakukan validasi batch",
+			"details": err.Error(),
+		})
 		return
 	}
 
