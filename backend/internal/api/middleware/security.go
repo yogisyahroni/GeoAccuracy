@@ -37,12 +37,13 @@ func CORSMiddleware(allowedOrigins string) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		requestOrigin := c.Request.Header.Get("Origin")
+		trimmedRequestOrigin := strings.TrimRight(requestOrigin, "/")
 
 		// Handle preflight
 		allowOrigin := ""
-		if requestOrigin != "" {
-			if originSet["*"] || originSet[requestOrigin] {
-				allowOrigin = requestOrigin
+		if trimmedRequestOrigin != "" {
+			if originSet["*"] || originSet[trimmedRequestOrigin] {
+				allowOrigin = requestOrigin // keep original for the header
 			}
 		}
 
@@ -78,7 +79,7 @@ func CORSMiddleware(allowedOrigins string) gin.HandlerFunc {
 func buildOriginSet(allowedOrigins string) map[string]bool {
 	set := make(map[string]bool)
 	for _, origin := range strings.Split(allowedOrigins, ",") {
-		trimmed := strings.TrimSpace(origin)
+		trimmed := strings.TrimRight(strings.TrimSpace(origin), "/")
 		if trimmed != "" {
 			set[trimmed] = true
 		}

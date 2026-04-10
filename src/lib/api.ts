@@ -62,7 +62,7 @@ export async function request<TResponse>(
     path: string,
     body?: unknown,
     requiresAuth = true,
-    retries = 3,
+    retries = 6,
 ): Promise<TResponse> {
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
