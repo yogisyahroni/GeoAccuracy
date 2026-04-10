@@ -26,6 +26,9 @@ WORKDIR /
 # Copy the pre-built binary with explicit ownership for the nonroot user (UID 65532)
 COPY --from=builder --chown=65532:65532 /app/server /server
 
+# Important: Copy migration files to production so database initialization succeeds
+COPY --from=builder --chown=65532:65532 /app/internal/db/migrations /internal/db/migrations
+
 # Expose port (default 8081 for backend)
 EXPOSE 8081
 
