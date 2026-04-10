@@ -88,7 +88,7 @@ func main() {
 	defer schedulerSvc.Stop()
 
 	// 5. Setup Handlers
-	authHandler := handlers.NewAuthHandler(authSvc)
+	authHandler := handlers.NewAuthHandler(authSvc, cfg)
 	geoHandler := handlers.NewGeocodeHandler(geoSvc)
 	compHandler := handlers.NewComparisonHandler(compSvc)
 	settingsHandler := handlers.NewSettingsHandler(settingsSvc)

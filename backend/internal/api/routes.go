@@ -1,8 +1,11 @@
 package api
 
 import (
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"golang.org/x/time/rate"
 
 	"geoaccuracy-backend/config"
 	"geoaccuracy-backend/internal/api/handlers"
@@ -48,11 +51,14 @@ func SetupRouter(
 
 	api := r.Group("/api")
 	{
-		// ── Public ────────────────────────────────────────────────────────
+		// ── Public Auth (With S++ Rate Limiting) ──────────────────────
 		auth := api.Group("/auth")
+		auth.Use(middleware.RateLimit(rate.Every(time.Second/5), 10)) // 5 req/sec
 		{
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
+			auth.POST("/refresh", authHandler.Refresh) // Token Rotation endpoint
+			auth.POST("/logout", authHandler.Logout)
 		}
 
 		// ── Protected (JWT required) ───────────────────────────────────
@@ -77,18 +83,17 @@ func SetupRouter(
 			editorGroup := protected.Group("/")
 			editorGroup.Use(middleware.RequireRole("admin", "editor"))
 			{
-				editorGroup.POST("/geocode", geoHandler.Geocode) // Integrasi Database & Pipa Proses
+				editorGroup.POST("/geocode", geoHandler.Geocode)
 				editorGroup.POST("/compare", compHandler.ValidateBatch)
 
 				editorGroup.POST("/datasources", dsHandler.Create)
 				editorGroup.POST("/datasources/test", dsHandler.TestConnection)
-				editorGroup.POST("/pipelines/preview", dsHandler.PreviewPipeline) // FIX: was missing
-				editorGroup.POST("/pipelines/run", dsHandler.RunPipeline)         // FIX: was missing
+				editorGroup.POST("/pipelines/preview", dsHandler.PreviewPipeline)
+				editorGroup.POST("/pipelines/run", dsHandler.RunPipeline)
 				editorGroup.POST("/pipelines", dsHandler.SavePipeline)
 				editorGroup.DELETE("/pipelines/:id", dsHandler.DeletePipeline)
 				editorGroup.POST("/pipelines/:id/run", dsHandler.RunPipeline)
 
-				// Integrasi ERP API Outbound (Cron-based Push/Pull)
 				editorGroup.POST("/erp-integrations", erpHandler.Create)
 				editorGroup.GET("/erp-integrations", erpHandler.List)
 				editorGroup.PUT("/erp-integrations/:id", erpHandler.Update)
@@ -98,7 +103,6 @@ func SetupRouter(
 				editorGroup.POST("/areas", areaHandler.CreateArea)
 				editorGroup.DELETE("/areas/:id", areaHandler.DeleteArea)
 
-				// Enterprise Batch Processing
 				editorGroup.POST("/batches", batchHandler.CreateBatch)
 				editorGroup.GET("/batches", batchHandler.ListBatches)
 				editorGroup.GET("/batches/:id/results", batchHandler.GetBatchResults)
@@ -113,20 +117,19 @@ func SetupRouter(
 			adminGroup := protected.Group("/")
 			adminGroup.Use(middleware.RequireRole("admin"))
 			{
-				// Internal Global API Keys
 				adminGroup.GET("/settings", settingsHandler.GetSettings)
 				adminGroup.PUT("/settings/keys", settingsHandler.UpdateSettings)
 				adminGroup.POST("/settings/keys/test", settingsHandler.TestProviderKey)
 
-				// External Ingestion API Keys (Webhooks)
 				adminGroup.GET("/settings/api-keys", webhookHandler.ListAPIKeys)
 				adminGroup.POST("/settings/api-keys", webhookHandler.GenerateAPIKey)
 				adminGroup.DELETE("/settings/api-keys/:id", webhookHandler.RevokeAPIKey)
 			}
 		}
 
-		// ── Webhook Ingestion (API Key Auth) ───────────────────────────
+		// ── Webhook Ingestion (API Key Auth + S++ Rate Limiting) ───────
 		ext := api.Group("/webhooks")
+		ext.Use(middleware.RateLimit(rate.Every(time.Second/20), 40)) // 20 req/sec
 		ext.Use(middleware.APIKeyAuthMiddleware(webhookRepo))
 		{
 			ext.POST("/ingest", webhookHandler.IngestData)
@@ -135,3 +138,4 @@ func SetupRouter(
 
 	return r
 }
+

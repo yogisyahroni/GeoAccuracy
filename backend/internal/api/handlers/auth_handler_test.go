@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	"geoaccuracy-backend/config"
 	"geoaccuracy-backend/internal/api/handlers"
 	"geoaccuracy-backend/internal/domain"
 	"geoaccuracy-backend/internal/service"
@@ -38,10 +39,19 @@ func (m *mockAuthService) Login(ctx context.Context, req domain.LoginRequest) (*
 	return nil, args.Error(1)
 }
 
+func (m *mockAuthService) Refresh(ctx context.Context, refreshToken string) (*domain.AuthResponse, error) {
+	args := m.Called(ctx, refreshToken)
+	if args.Get(0) != nil {
+		return args.Get(0).(*domain.AuthResponse), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 func setupAuthRouter(authSvc service.AuthService) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
-	handler := handlers.NewAuthHandler(authSvc)
+	cfg := &config.Config{AppEnv: "development"}
+	handler := handlers.NewAuthHandler(authSvc, cfg)
 
 	router.POST("/api/auth/register", handler.Register)
 	router.POST("/api/auth/login", handler.Login)
@@ -83,7 +93,23 @@ func TestRegister_Success(t *testing.T) {
 	var res map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &res)
 	assert.NoError(t, err)
-	assert.Equal(t, "mock-jwt-token", res["access_token"])
+	// access_token should be empty in JSON (Grade S++ Cookie Auth)
+	assert.Equal(t, "", res["access_token"])
+
+	// Verify cookies
+	cookies := w.Result().Cookies()
+	var foundAccess, foundRefresh bool
+	for _, c := range cookies {
+		if c.Name == "access_token" && c.Value == "mock-jwt-token" {
+			foundAccess = true
+			assert.True(t, c.HttpOnly)
+		}
+		if c.Name == "refresh_token" {
+			foundRefresh = true
+		}
+	}
+	assert.True(t, foundAccess, "access_token cookie not found or invalid")
+	assert.True(t, foundRefresh, "refresh_token cookie not found")
 
 	mockSvc.AssertExpectations(t)
 }
@@ -121,7 +147,19 @@ func TestLogin_Success(t *testing.T) {
 	var res map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &res)
 	assert.NoError(t, err)
-	assert.Equal(t, "mock-jwt-token-login", res["access_token"])
+	// access_token should be empty in JSON (Grade S++ Cookie Auth)
+	assert.Equal(t, "", res["access_token"])
+
+	// Verify cookies
+	cookies := w.Result().Cookies()
+	var foundAccess bool
+	for _, c := range cookies {
+		if c.Name == "access_token" && c.Value == "mock-jwt-token-login" {
+			foundAccess = true
+			assert.True(t, c.HttpOnly)
+		}
+	}
+	assert.True(t, foundAccess, "access_token cookie not found or invalid")
 
 	mockSvc.AssertExpectations(t)
 }

@@ -95,33 +95,24 @@ describe('authApi.register', () => {
 // ─── comparisonApi.compareBatch tests ────────────────────────────────────────
 
 describe('comparisonApi.compareBatch', () => {
-    it('should throw ApiError 401 if token is missing', async () => {
-        // No token in localStorage
-        await expect(
-            comparisonApi.compareBatch({ records: [] }),
-        ).rejects.toMatchObject({ status: 401, code: 'UNAUTHENTICATED' });
-    });
-
-    it('should inject Authorization header when token is present', async () => {
-        // api.ts reads token from localStorage
-        localStorage.setItem('geoaccuracy_token', 'valid-jwt');
+    it('should include credentials in the request', async () => {
         mockFetch.mockResolvedValueOnce(
-            mockResponse(200, { results: [], total: 0, processed: 0, errors: 0 }),
+            mockResponse(200, { results: [] }),
         );
 
-        await comparisonApi.compareBatch({ records: [] });
+        await comparisonApi.compareBatch({ items: [] });
 
         const callArgs = mockFetch.mock.calls[0][1] as RequestInit;
-        expect((callArgs.headers as Record<string, string>)['Authorization']).toBe('Bearer valid-jwt');
+        expect(callArgs.credentials).toBe('include');
+        // Authorization header should NOT be present (Grade S++ Cookie Auth)
+        expect((callArgs.headers as Record<string, string>)['Authorization']).toBeUndefined();
     });
 });
 
 // ─── geocodeApi.geocode tests ─────────────────────────────────────────────────
 
 describe('geocodeApi.geocode', () => {
-    it('should POST to /api/geocode when authenticated', async () => {
-        // api.ts reads token from localStorage
-        localStorage.setItem('geoaccuracy_token', 'valid-jwt');
+    it('should POST to /api/geocode with credentials', async () => {
         mockFetch.mockResolvedValueOnce(
             mockResponse(200, { lat: -6.2, lng: 106.816, display_name: 'Jakarta', cached: false }),
         );
@@ -132,8 +123,9 @@ describe('geocodeApi.geocode', () => {
             province: 'DKI Jakarta',
         });
 
+        const callArgs = mockFetch.mock.calls[0][1] as RequestInit;
+        expect(callArgs.credentials).toBe('include');
         expect(result.lat).toBe(-6.2);
-        expect(result.cached).toBe(false);
     });
 });
 

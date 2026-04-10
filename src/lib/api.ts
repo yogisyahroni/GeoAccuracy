@@ -22,29 +22,21 @@ export class ApiError extends Error {
     }
 }
 
-// ─── Token helpers ────────────────────────────────────────────────────────────
+// ─── User helpers (Tokens are now in HttpOnly cookies) ───────────────────────────
 
-const TOKEN_KEY = 'geoaccuracy_token';
+const USER_KEY = 'geoaccuracy_user';
 
-export function getStoredToken(): string | null {
-    return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setStoredToken(token: string): void {
-    localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function clearStoredToken(): void {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem('geoaccuracy_user');
+export function clearStoredAuth(): void {
+    localStorage.removeItem(USER_KEY);
+    // Note: Cookies are cleared by backend on logout or deleted by browser
 }
 
 export function setStoredUser(user: AuthUser): void {
-    localStorage.setItem('geoaccuracy_user', JSON.stringify(user));
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
 export function getStoredUser(): AuthUser | null {
-    const raw = localStorage.getItem('geoaccuracy_user');
+    const raw = localStorage.getItem(USER_KEY);
     if (!raw) return null;
     try {
         return JSON.parse(raw) as AuthUser;
@@ -57,25 +49,27 @@ export function getStoredUser(): AuthUser | null {
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Keep track of refresh promise to prevent multiple concurrent refreshes
+let refreshPromise: Promise<void> | null = null;
+
 export async function request<TResponse>(
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
     path: string,
     body?: unknown,
     requiresAuth = true,
-    retries = 6,
+    retries = 3, // Reduced retries for auth loops
 ): Promise<TResponse> {
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
     };
 
-    if (requiresAuth) {
-        const token = getStoredToken();
-        if (!token) {
-            throw new ApiError(401, 'UNAUTHENTICATED', 'No authentication token found. Please log in.');
-        }
-        headers['Authorization'] = `Bearer ${token}`;
-    }
+    const fetchOptions: RequestInit = {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        credentials: 'include', // CRITICAL for Grade S++ cookie-based auth
+    };
 
     let response: Response | null = null;
     let attempt = 0;
@@ -83,27 +77,19 @@ export async function request<TResponse>(
 
     while (attempt <= retries) {
         try {
-            response = await fetch(`${API_BASE_URL}${path}`, {
-                method,
-                headers,
-                body: body !== undefined ? JSON.stringify(body) : undefined,
-            });
+            response = await fetch(`${API_BASE_URL}${path}`, fetchOptions);
             
-            // Mitigate Render Cold Start:
-            // Treat 502 (Bad Gateway), 503 (Service Unavailable), and 504 (Gateway Timeout) as retryable errors
+            // Mitigate Render Cold Start
             if (response && (response.status === 502 || response.status === 503 || response.status === 504)) {
                 throw new Error(`Server returned ${response.status} - waiting for instance to wake up`);
             }
 
-            // Normal response (success or specific API error code like 400, 403, 500, etc.)
+            // Normal response
             break;
         } catch (error) {
             lastError = error instanceof Error ? error : new Error(String(error));
             attempt++;
-            if (attempt > retries) {
-                break;
-            }
-            // Exponential backoff: 1.5s, 3s, 6s... gives Render enough time to wake up (can take up to 45s)
+            if (attempt > retries) break;
             await delay(1500 * Math.pow(2, attempt - 1));
         }
     }
@@ -112,16 +98,36 @@ export async function request<TResponse>(
         throw new ApiError(0, 'NETWORK_ERROR', `Network request failed after ${retries} retries. Last error: ${lastError?.message}`);
     }
 
-    // Handle Auto Logout on 401
-    // Usually means token is invalid, expired or signature changed
-    if (response.status === 401) {
-        clearStoredToken();
-        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-            window.location.href = '/login';
+    // Handle 401: Token expired or invalid
+    if (response.status === 401 && requiresAuth && path !== '/api/auth/refresh') {
+        // Attempt to refresh if not already refreshing
+        if (!refreshPromise) {
+            refreshPromise = (async () => {
+                try {
+                    await fetch(`${API_BASE_URL}/api/auth/refresh`, { 
+                        method: 'POST', 
+                        credentials: 'include' 
+                    });
+                } finally {
+                    refreshPromise = null;
+                }
+            })();
         }
+
+        await refreshPromise;
+        // Retry original request ONCE after refresh attempt
+        const retryResponse = await fetch(`${API_BASE_URL}${path}`, fetchOptions);
+        if (retryResponse.status === 401) {
+            clearStoredAuth();
+            if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
+            throw new ApiError(401, 'UNAUTHENTICATED', 'Session expired. Please log in again.');
+        }
+        response = retryResponse;
     }
 
-    // Parse JSON body regardless of status — backend always returns JSON
+    // Parse JSON body
     let data: unknown;
     const contentType = response.headers.get('content-type') ?? '';
     if (contentType.includes('application/json')) {
@@ -139,6 +145,7 @@ export async function request<TResponse>(
 
     return data as TResponse;
 }
+
 
 // ─── Domain types ─────────────────────────────────────────────────────────────
 
@@ -257,6 +264,9 @@ export const authApi = {
 
     register(payload: RegisterRequest): Promise<RegisterResponse> {
         return request<RegisterResponse>('POST', '/api/auth/register', payload, false);
+    },
+    logout(): Promise<void> {
+        return request<void>('POST', '/api/auth/logout', undefined, false);
     },
 };
 

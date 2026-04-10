@@ -21,23 +21,13 @@ export const useBatchWebSocket = (batchId: string | null) => {
     const connect = useCallback(() => {
         if (!batchId) return;
 
-        const token = localStorage.getItem('geoaccuracy_token');
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = (import.meta as any).env?.VITE_API_URL
             ? (import.meta as any).env.VITE_API_URL.replace(/^https?:\/\//, '')
             : 'localhost:8080';
 
         // FIX BUG-11: Token is NO LONGER included in the URL query string.
-        // Previously: /api/ws/batches/:id?token=<jwt>
-        // The JWT appeared in server access logs (Render logs), browser history,
-        // DevTools Network tab, and any proxy between frontend and backend.
-        //
-        // New approach: First-message authentication.
-        // 1. Connect to the clean URL (no token).
-        // 2. On onopen, send {"type":"auth","token":"<jwt>"} as the first WebSocket frame.
-        // 3. Backend validates synchronously within a 10-second deadline.
-        // 4. Backend replies with {"type":"auth_ok"} → we start receiving progress events.
-        // The JWT is now transmitted only inside an encrypted WebSocket frame body.
+        // And now (Grade S++), we rely on HttpOnly cookies sent automatically.
         const wsUrl = `${protocol}//${host}/api/ws/batches/${batchId}`;
         console.log(`[WebSocket] Connecting to ${wsUrl}...`);
 
@@ -45,10 +35,8 @@ export const useBatchWebSocket = (batchId: string | null) => {
         wsRef.current = ws;
 
         ws.onopen = () => {
-            console.log(`[WebSocket] Connected for batch ${batchId}, sending auth...`);
-            // Immediately send auth frame — server expects this within 10 seconds.
-            ws.send(JSON.stringify({ type: 'auth', token }));
-            // Keep wsStatus 'idle' until we receive auth_ok to avoid premature UI updates.
+            console.log(`[WebSocket] Connected for batch ${batchId}, waiting for auth_ok ack...`);
+            // Keep wsStatus 'idle' until we receive auth_ok from server to avoid premature UI updates.
         };
 
         ws.onmessage = (event) => {

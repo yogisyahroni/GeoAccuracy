@@ -72,7 +72,7 @@ const Login = () => {
     const onSubmit = async (data: LoginForm) => {
         try {
             const res = await authApi.login({ email: data.email, password: data.password });
-            login(res.user, res.access_token);
+            login(res.user);
             toast.success(`Selamat datang, ${res.user.name}! 👋`);
             navigate(from, { replace: true });
         } catch (err) {

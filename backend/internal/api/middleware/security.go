@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/time/rate"
 )
+
 
 // SecurityHeaders applies basic helmet-like security headers
 func SecurityHeaders() gin.HandlerFunc {
@@ -14,12 +18,54 @@ func SecurityHeaders() gin.HandlerFunc {
 		c.Header("X-Frame-Options", "DENY")
 		c.Header("X-Content-Type-Options", "nosniff")
 		c.Header("X-XSS-Protection", "1; mode=block")
-		c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		// Grade S++ HSTS: 2 years (63072000s) + includeSubDomains + preload
+		c.Header("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
 		c.Header("Content-Security-Policy", "default-src 'self'")
 
 		c.Next()
 	}
 }
+
+// ipLimiter represents a rate limiter per IP address
+type ipLimiter struct {
+	limiter  *rate.Limiter
+	lastSeen time.Time
+}
+
+var (
+	limiters = make(map[string]*ipLimiter)
+	mu       sync.Mutex
+)
+
+// RateLimit implements strict throttling for public/sensitive routes.
+// Grade S++ mandate: Prevent brute-force and DoS.
+func RateLimit(r rate.Limit, b int) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ip := c.ClientIP()
+
+		mu.Lock()
+		v, exists := limiters[ip]
+		if !exists {
+			v = &ipLimiter{
+				limiter:  rate.NewLimiter(r, b),
+				lastSeen: time.Now(),
+			}
+			limiters[ip] = v
+		}
+		v.lastSeen = time.Now()
+		mu.Unlock()
+
+		if !v.limiter.Allow() {
+			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
+				"error": "Rate limit exceeded. Please slow down.",
+			})
+			return
+		}
+
+		c.Next()
+	}
+}
+
 
 // CORSMiddleware validates the request Origin against the ALLOWED_ORIGINS
 // environment variable (comma-separated list). This prevents wildcard "*"

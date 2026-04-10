@@ -1,16 +1,14 @@
 import { create } from 'zustand';
 import {
   type AuthUser,
-  setStoredToken,
   setStoredUser,
-  clearStoredToken,
-  getStoredToken,
+  clearStoredAuth,
   getStoredUser,
+  authApi,
 } from '@/lib/api';
 
 interface AuthState {
   user: AuthUser | null;
-  token: string | null;
   isAuthenticated: boolean;
   /**
    * True until hydrate() has been called at least once.
@@ -20,35 +18,38 @@ interface AuthState {
   isHydrating: boolean;
   /** Call once on app mount to restore session from sessionStorage */
   hydrate: () => void;
-  login: (user: AuthUser, token: string) => void;
+  login: (user: AuthUser) => void;
   logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>()((set) => ({
   user: null,
-  token: null,
   isAuthenticated: false,
   isHydrating: true, // assume hydrating until proven otherwise
 
   hydrate: () => {
-    const token = getStoredToken();
     const user = getStoredUser();
-    if (token && user) {
-      set({ user, token, isAuthenticated: true, isHydrating: false });
+    // In Grade S++ cookie-based auth, we use the user object in localStorage
+    // as a hint. The actual validation happens via HTTP HttpOnly cookies.
+    if (user) {
+      set({ user, isAuthenticated: true, isHydrating: false });
     } else {
       // No stored session — still mark hydration as done so ProtectedRoute can redirect
       set({ isHydrating: false });
     }
   },
 
-  login: (user: AuthUser, token: string) => {
-    setStoredToken(token);
+  login: (user: AuthUser) => {
     setStoredUser(user);
-    set({ user, token, isAuthenticated: true, isHydrating: false });
+    set({ user, isAuthenticated: true, isHydrating: false });
   },
 
   logout: () => {
-    clearStoredToken();
-    set({ user: null, token: null, isAuthenticated: false });
+    // Fire and forget logout on backend to clear HttpOnly cookies
+    authApi.logout().catch(err => console.error('[useAuthStore] Logout API failed:', err));
+
+    clearStoredAuth();
+    set({ user: null, isAuthenticated: false });
   },
 }));
+

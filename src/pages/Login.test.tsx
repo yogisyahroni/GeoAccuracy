@@ -20,6 +20,7 @@ vi.mock('@/lib/api', async (importOriginal) => {
         ...mod,
         authApi: {
             login: vi.fn(),
+            logout: vi.fn().mockResolvedValue({}),
         },
     };
 });
@@ -111,7 +112,6 @@ describe('Login Component', () => {
             const state = useAuthStore.getState();
             expect(state.isAuthenticated).toBe(true);
             expect(state.user).toEqual(mockUser);
-            expect(state.token).toEqual(mockToken);
         });
 
         expect(toast.success).toHaveBeenCalledWith('Selamat datang, Test Admin! 👋');

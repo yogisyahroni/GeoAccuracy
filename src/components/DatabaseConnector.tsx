@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Database, Plus, Trash2, TestTube, CheckCircle, XCircle, ChevronDown, ChevronUp, Eye, EyeOff, HelpCircle } from 'lucide-react';
+import { integrationApi } from '@/lib/api';
 import {
   Tooltip,
   TooltipContent,
@@ -105,30 +106,18 @@ export function DatabaseConnector({ onConnectionSelect }: DatabaseConnectorProps
 
     updateConn(id, { status: 'testing' });
     try {
-      const token = localStorage.getItem('geoaccuracy_token');
-      const res = await fetch('/api/datasources/test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          db_type: conn.type,
-          host: conn.host,
-          port: conn.port,
-          database: conn.database,
-          username: conn.username,
-          password: conn.password,
-          ssl_enabled: conn.sslEnabled,
-        }),
+      await integrationApi.testConnection({
+        name: conn.name,
+        provider: conn.type as 'postgresql' | 'mysql',
+        host: conn.host,
+        port: parseInt(conn.port, 10),
+        database: conn.database,
+        username: conn.username,
+        password: conn.password,
       });
-
-      if (res.ok) {
-        updateConn(id, { status: 'connected' });
-      } else {
-        updateConn(id, { status: 'failed' });
-      }
-    } catch {
+      updateConn(id, { status: 'connected' });
+    } catch (err) {
+      console.error('[DatabaseConnector] Test failed:', err);
       updateConn(id, { status: 'failed' });
     }
   };

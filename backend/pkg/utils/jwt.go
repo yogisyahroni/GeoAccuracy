@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"strconv"
 	"time"
 
 	"geoaccuracy-backend/config"
@@ -9,14 +10,16 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+
 type Claims struct {
 	UserID int64  `json:"user_id"`
 	Role   string `json:"role"`
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(userID int64, role string, cfg *config.Config) (string, error) {
-	expirationTime := time.Now().Add(12 * time.Hour)
+// GenerateAccessToken creates a short-lived (15 min) JWT for authentication.
+func GenerateAccessToken(userID int64, role string, cfg *config.Config) (string, error) {
+	expirationTime := time.Now().Add(15 * time.Minute)
 
 	claims := &Claims{
 		UserID: userID,
@@ -28,15 +31,24 @@ func GenerateToken(userID int64, role string, cfg *config.Config) (string, error
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(cfg.JWTSecret))
-
-	if err != nil {
-		return "", err
-	}
-
-	return tokenString, nil
+	return token.SignedString([]byte(cfg.JWTSecret))
 }
 
+// GenerateRefreshToken creates a long-lived (7 days) JWT for session maintenance.
+func GenerateRefreshToken(userID int64, cfg *config.Config) (string, error) {
+	expirationTime := time.Now().Add(7 * 24 * time.Hour)
+
+	claims := &jwt.RegisteredClaims{
+		Subject:   strconv.FormatInt(userID, 10),
+		ExpiresAt: jwt.NewNumericDate(expirationTime),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(cfg.JWTSecret))
+}
+
+// ParseToken validates and parses any JWT.
 func ParseToken(tokenStr string, cfg *config.Config) (*Claims, error) {
 	claims := &Claims{}
 
@@ -57,3 +69,4 @@ func ParseToken(tokenStr string, cfg *config.Config) (*Claims, error) {
 
 	return claims, nil
 }
+

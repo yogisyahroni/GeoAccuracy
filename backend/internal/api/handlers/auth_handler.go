@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"geoaccuracy-backend/config"
 	"geoaccuracy-backend/internal/domain"
 	"geoaccuracy-backend/internal/repository"
 	"geoaccuracy-backend/internal/service"
@@ -12,10 +13,11 @@ import (
 
 type AuthHandler struct {
 	authService service.AuthService
+	cfg         *config.Config
 }
 
-func NewAuthHandler(authService service.AuthService) *AuthHandler {
-	return &AuthHandler{authService: authService}
+func NewAuthHandler(authService service.AuthService, cfg *config.Config) *AuthHandler {
+	return &AuthHandler{authService: authService, cfg: cfg}
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -35,6 +37,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
+	h.setAuthCookies(c, res.AccessToken, res.RefreshToken)
+
+	// In Grade S++, we don't send the token in JSON body to prevent storage in localStorage
+	res.AccessToken = ""
+	res.RefreshToken = ""
 	c.JSON(http.StatusCreated, res)
 }
 
@@ -55,5 +62,56 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	h.setAuthCookies(c, res.AccessToken, res.RefreshToken)
+
+	// Don't leak tokens in JSON body
+	res.AccessToken = ""
+	res.RefreshToken = ""
 	c.JSON(http.StatusOK, res)
 }
+
+func (h *AuthHandler) Refresh(c *gin.Context) {
+	refreshToken, err := c.Cookie("refresh_token")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token required"})
+		return
+	}
+
+	res, err := h.authService.Refresh(c.Request.Context(), refreshToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
+		return
+	}
+
+	h.setAuthCookies(c, res.AccessToken, res.RefreshToken)
+
+	// Don't leak tokens in JSON body
+	res.AccessToken = ""
+	res.RefreshToken = ""
+	c.JSON(http.StatusOK, res)
+}
+
+func (h *AuthHandler) Logout(c *gin.Context) {
+	h.clearAuthCookies(c)
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+}
+
+func (h *AuthHandler) setAuthCookies(c *gin.Context, accessToken, refreshToken string) {
+	secure := h.cfg.AppEnv == "production"
+	
+	// Access Token: 15 min
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie("access_token", accessToken, 15*60, "/", "", secure, true)
+	
+	// Refresh Token: 7 days
+	c.SetCookie("refresh_token", refreshToken, 7*24*3600, "/api/auth/refresh", "", secure, true)
+}
+
+func (h *AuthHandler) clearAuthCookies(c *gin.Context) {
+	secure := h.cfg.AppEnv == "production"
+	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetCookie("access_token", "", -1, "/", "", secure, true)
+	c.SetCookie("refresh_token", "", -1, "/api/auth/refresh", "", secure, true)
+}
+
+

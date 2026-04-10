@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 
+	"strconv"
+
 	"geoaccuracy-backend/config"
+
 	"geoaccuracy-backend/internal/domain"
 	"geoaccuracy-backend/internal/repository"
 	"geoaccuracy-backend/pkg/utils"
@@ -17,7 +20,9 @@ var (
 type AuthService interface {
 	Register(ctx context.Context, req domain.RegisterRequest) (*domain.AuthResponse, error)
 	Login(ctx context.Context, req domain.LoginRequest) (*domain.AuthResponse, error)
+	Refresh(ctx context.Context, refreshToken string) (*domain.AuthResponse, error)
 }
+
 
 type authService struct {
 	userRepo repository.UserRepository
@@ -47,15 +52,20 @@ func (s *authService) Register(ctx context.Context, req domain.RegisterRequest) 
 		return nil, err
 	}
 
-	// Generate JWT
-	token, err := utils.GenerateToken(user.ID, user.Role, s.cfg)
+	// Generate JWTs
+	accessToken, err := utils.GenerateAccessToken(user.ID, user.Role, s.cfg)
+	if err != nil {
+		return nil, err
+	}
+	refreshToken, err := utils.GenerateRefreshToken(user.ID, s.cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	return &domain.AuthResponse{
-		User:        *user,
-		AccessToken: token,
+		User:         *user,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	}, nil
 }
 
@@ -75,14 +85,67 @@ func (s *authService) Login(ctx context.Context, req domain.LoginRequest) (*doma
 		return nil, ErrInvalidCredentials
 	}
 
-	// Generate JWT
-	token, err := utils.GenerateToken(user.ID, user.Role, s.cfg)
+	// Generate JWTs
+	accessToken, err := utils.GenerateAccessToken(user.ID, user.Role, s.cfg)
+	if err != nil {
+		return nil, err
+	}
+	refreshToken, err := utils.GenerateRefreshToken(user.ID, s.cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	return &domain.AuthResponse{
-		User:        *user,
-		AccessToken: token,
+		User:         *user,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	}, nil
 }
+
+func (s *authService) Refresh(ctx context.Context, refreshToken string) (*domain.AuthResponse, error) {
+	// Parse the refresh token
+	claims, err := utils.ParseToken(refreshToken, s.cfg)
+	if err != nil {
+		return nil, errors.New("invalid refresh token")
+	}
+
+	// In RefreshToken, we use Subject for UserID
+	userIDStr := claims.Subject
+	if userIDStr == "" {
+		// Fallback for transition if we previously used claims.UserID
+		if claims.UserID != 0 {
+			userIDStr = strconv.FormatInt(claims.UserID, 10)
+		} else {
+			return nil, errors.New("invalid refresh token: missing subject")
+		}
+	}
+
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		return nil, errors.New("invalid refresh token: corrupt payload")
+	}
+
+	// Load user to verify state and get current role
+	user, err := s.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, errors.New("user not found or inactive")
+	}
+
+	// Generate new pair
+	accessToken, err := utils.GenerateAccessToken(user.ID, user.Role, s.cfg)
+	if err != nil {
+		return nil, err
+	}
+	newRefreshToken, err := utils.GenerateRefreshToken(user.ID, s.cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &domain.AuthResponse{
+		User:         *user,
+		AccessToken:  accessToken,
+		RefreshToken: newRefreshToken,
+	}, nil
+}
+
+

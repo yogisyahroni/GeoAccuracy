@@ -14,7 +14,7 @@ beforeEach(() => {
     // Reset Zustand store to initial state and clear localStorage
     // (api.ts persists token/user to localStorage, not sessionStorage)
     localStorage.clear();
-    useAuthStore.setState({ user: null, token: null, isAuthenticated: false });
+    useAuthStore.setState({ user: null, isAuthenticated: false });
 });
 
 describe('useAuthStore', () => {
@@ -22,27 +22,25 @@ describe('useAuthStore', () => {
         const { result } = renderHook(() => useAuthStore());
         expect(result.current.isAuthenticated).toBe(false);
         expect(result.current.user).toBeNull();
-        expect(result.current.token).toBeNull();
     });
 
-    it('login() sets auth state and persists to sessionStorage', () => {
+    it('login() sets auth state and persists user to localStorage', () => {
         const { result } = renderHook(() => useAuthStore());
 
         act(() => {
-            result.current.login(fakeUser, 'tok123');
+            result.current.login(fakeUser);
         });
 
         expect(result.current.isAuthenticated).toBe(true);
         expect(result.current.user).toEqual(fakeUser);
-        expect(result.current.token).toBe('tok123');
-        expect(localStorage.getItem('geoaccuracy_token')).toBe('tok123');
+        expect(localStorage.getItem('geoaccuracy_user')).toContain('budi@test.com');
     });
 
-    it('logout() clears auth state and sessionStorage', () => {
+    it('logout() clears auth state and localStorage', () => {
         const { result } = renderHook(() => useAuthStore());
 
         act(() => {
-            result.current.login(fakeUser, 'tok123');
+            result.current.login(fakeUser);
         });
         act(() => {
             result.current.logout();
@@ -50,12 +48,10 @@ describe('useAuthStore', () => {
 
         expect(result.current.isAuthenticated).toBe(false);
         expect(result.current.user).toBeNull();
-        expect(result.current.token).toBeNull();
-        expect(localStorage.getItem('geoaccuracy_token')).toBeNull();
+        expect(localStorage.getItem('geoaccuracy_user')).toBeNull();
     });
 
-    it('hydrate() restores session from sessionStorage', () => {
-        localStorage.setItem('geoaccuracy_token', 'restored-tok');
+    it('hydrate() restores user session from localStorage', () => {
         localStorage.setItem('geoaccuracy_user', JSON.stringify(fakeUser));
 
         const { result } = renderHook(() => useAuthStore());
@@ -65,11 +61,10 @@ describe('useAuthStore', () => {
         });
 
         expect(result.current.isAuthenticated).toBe(true);
-        expect(result.current.token).toBe('restored-tok');
         expect(result.current.user).toEqual(fakeUser);
     });
 
-    it('hydrate() does nothing when sessionStorage is empty', () => {
+    it('hydrate() does nothing when localStorage is empty', () => {
         const { result } = renderHook(() => useAuthStore());
 
         act(() => {
@@ -80,8 +75,7 @@ describe('useAuthStore', () => {
         expect(result.current.user).toBeNull();
     });
 
-    it('hydrate() does nothing when sessionStorage user JSON is corrupt', () => {
-        localStorage.setItem('geoaccuracy_token', 'tok');
+    it('hydrate() does nothing when localStorage user JSON is corrupt', () => {
         localStorage.setItem('geoaccuracy_user', '{corrupt json}');
 
         const { result } = renderHook(() => useAuthStore());

@@ -85,7 +85,7 @@ const Register = () => {
                 email: data.email,
                 password: data.password,
             });
-            login(res.user, res.access_token);
+            login(res.user);
             toast.success(`Akun berhasil dibuat! Selamat datang, ${res.user.name}! 🎉`);
             navigate('/', { replace: true });
         } catch (err) {
