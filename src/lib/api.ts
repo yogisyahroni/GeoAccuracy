@@ -55,11 +55,14 @@ export function getStoredUser(): AuthUser | null {
 
 // ─── Core fetch ───────────────────────────────────────────────────────────────
 
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export async function request<TResponse>(
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
     path: string,
     body?: unknown,
     requiresAuth = true,
+    retries = 3,
 ): Promise<TResponse> {
     const headers: HeadersInit = {
         'Content-Type': 'application/json',
@@ -74,15 +77,48 @@ export async function request<TResponse>(
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    let response: Response;
-    try {
-        response = await fetch(`${API_BASE_URL}${path}`, {
-            method,
-            headers,
-            body: body !== undefined ? JSON.stringify(body) : undefined,
-        });
-    } catch (networkError) {
-        throw new ApiError(0, 'NETWORK_ERROR', `Network request failed: ${String(networkError)}`);
+    let response: Response | null = null;
+    let attempt = 0;
+    let lastError: Error | null = null;
+
+    while (attempt <= retries) {
+        try {
+            response = await fetch(`${API_BASE_URL}${path}`, {
+                method,
+                headers,
+                body: body !== undefined ? JSON.stringify(body) : undefined,
+            });
+            
+            // Mitigate Render Cold Start:
+            // Treat 502 (Bad Gateway), 503 (Service Unavailable), and 504 (Gateway Timeout) as retryable errors
+            if (response && (response.status === 502 || response.status === 503 || response.status === 504)) {
+                throw new Error(`Server returned ${response.status} - waiting for instance to wake up`);
+            }
+
+            // Normal response (success or specific API error code like 400, 403, 500, etc.)
+            break;
+        } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
+            attempt++;
+            if (attempt > retries) {
+                break;
+            }
+            // Exponential backoff: 1.5s, 3s, 6s... gives Render enough time to wake up (can take up to 45s)
+            await delay(1500 * Math.pow(2, attempt - 1));
+        }
+    }
+
+    if (!response) {
+        throw new ApiError(0, 'NETWORK_ERROR', `Network request failed after ${retries} retries. Last error: ${lastError?.message}`);
+    }
+
+    // Handle Auto Logout on 401
+    // Usually means token is invalid, expired or signature changed
+    if (response.status === 401) {
+        clearStoredToken();
+        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+            window.location.href = '/login';
+        }
     }
 
     // Parse JSON body regardless of status — backend always returns JSON
