@@ -30,7 +30,7 @@ describe('authApi.login', () => {
     it('should POST to /api/auth/login and return token + user on 200', async () => {
         const fakeUser = { id: 1, name: 'Budi', email: 'budi@test.com', role: 'user' };
         mockFetch.mockResolvedValueOnce(
-            mockResponse(200, { token: 'tok123', user: fakeUser }),
+            mockResponse(200, { access_token: 'tok123', user: fakeUser }),
         );
 
         const result = await authApi.login({ email: 'budi@test.com', password: 'Password1' });
@@ -39,7 +39,7 @@ describe('authApi.login', () => {
             `${API_BASE_URL}/api/auth/login`,
             expect.objectContaining({ method: 'POST' }),
         );
-        expect(result.token).toBe('tok123');
+        expect(result.access_token).toBe('tok123');
         expect(result.user).toEqual(fakeUser);
     });
 
@@ -68,7 +68,7 @@ describe('authApi.register', () => {
     it('should POST to /api/auth/register and return token + user on 201', async () => {
         const fakeUser = { id: 2, name: 'Sari', email: 'sari@test.com', role: 'user' };
         mockFetch.mockResolvedValueOnce(
-            mockResponse(201, { token: 'newTok', user: fakeUser }),
+            mockResponse(201, { access_token: 'newTok', user: fakeUser }),
         );
 
         const result = await authApi.register({
@@ -78,7 +78,7 @@ describe('authApi.register', () => {
         });
 
         expect(result.user.name).toBe('Sari');
-        expect(result.token).toBe('newTok');
+        expect(result.access_token).toBe('newTok');
     });
 
     it('should throw ApiError 409 when email already exists', async () => {
