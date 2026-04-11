@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 export interface WebSocketMessage {
     batch_id: string;
     type: 'progress' | 'completed' | 'error' | 'auth_ok';
-    payload: any;
+    payload: unknown;
 }
 
 export interface BatchProgress {

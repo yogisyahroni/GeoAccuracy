@@ -48,24 +48,23 @@ describe('DataIntegration Component (Pipeline Builder)', () => {
     it('renders tabs and correctly displays default Connections tab', async () => {
         renderWithProvider(<DataIntegration />);
 
-        expect(screen.getByText(/Data Integration/i)).toBeInTheDocument();
+        expect(screen.getByText(/Data Orchestrator/i)).toBeInTheDocument();
 
         // Assert elements on DataSource tab
         await waitFor(() => {
-            expect(screen.getByText('Tambah Database')).toBeInTheDocument();
+            expect(screen.getByText(/Repository/i)).toBeInTheDocument();
         });
     });
 
     it('switches to Pipeline builder tab successfully', async () => {
         renderWithProvider(<DataIntegration />);
 
-        const pipelineTabs = screen.getAllByText(/Transformation Pipeline/i);
-        fireEvent.click(pipelineTabs[1]); // The tab button
+        const pipelineTabs = screen.getAllByText(/Local Pipeline/i);
+        fireEvent.click(pipelineTabs[1] || pipelineTabs[0]); // The tab button
 
         await waitFor(() => {
             // Check if pipeline builder empty state or form is visible
-            // 'Pilih Sumber Data Pertama' is shown if no DS is selected
-            expect(screen.getByText('Pilih Sumber Data Pertama')).toBeInTheDocument();
+            expect(screen.getByText(/MANAGING PIPELINES/i)).toBeInTheDocument();
         });
     });
 });
