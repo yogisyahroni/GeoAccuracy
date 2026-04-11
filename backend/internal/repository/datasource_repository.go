@@ -114,11 +114,11 @@ func (r *dataSourceRepository) SavePipeline(ctx context.Context, p *domain.Trans
 
 	query := `
 		UPDATE transformation_pipelines
-		SET name = $1, config = $2, updated_at = CURRENT_TIMESTAMP
-		WHERE id = $3 AND user_id = $4
+		SET name = $1, config = $2, data_source_id = $3, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $4 AND user_id = $5
 		RETURNING updated_at
 	`
-	return r.db.QueryRowContext(ctx, query, p.Name, p.Config, p.ID, p.UserID).Scan(&p.UpdatedAt)
+	return r.db.QueryRowContext(ctx, query, p.Name, p.Config, p.DataSourceID, p.ID, p.UserID).Scan(&p.UpdatedAt)
 }
 
 func (r *dataSourceRepository) GetPipelineByID(ctx context.Context, id int64, userID int64) (*domain.TransformationPipeline, error) {

@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { integrationApi, DataSource, TableSchema, TransformationPipeline, ErpIntegrationRequest, ErpIntegration } from '../lib/api';
-import { Database, Plus, Play, Server, DatabaseZap, Loader2, Clock, CheckCircle2, RefreshCw, Key, Link as LinkIcon, Hash, MapPin, User, Navigation, Settings, ChevronDown, Trash2 } from 'lucide-react';
+import { integrationApi, DataSource, TableSchema, TransformationPipeline } from '../lib/api';
+import { Database, Plus, Play, Server, DatabaseZap, Loader2, CheckCircle2, RefreshCw, Hash, MapPin, User, Navigation, Settings, ChevronDown, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 
 export default function DataIntegration() {
     const queryClient = useQueryClient();
-    const [activeTab, setActiveTab] = useState<'connections' | 'pipeline' | 'erp'>('connections');
+    const [activeTab, setActiveTab] = useState<'connections' | 'pipeline'>('connections');
 
     // Connection Form State
     const [connForm, setConnForm] = useState({
@@ -35,11 +35,6 @@ export default function DataIntegration() {
     const [pipelineName, setPipelineName] = useState('New Pipeline');
     const [loadedPipelineId, setLoadedPipelineId] = useState<number | null>(null);
 
-    // ERP Form State
-    const [erpForm, setErpForm] = useState<ErpIntegrationRequest>({
-        name: '', url: '', method: 'GET', auth_header_key: '', auth_header_value: '', cron_schedule: '0 0 * * *'
-    });
-
     // Fetch Data Sources
     const { data: dataSources = [], isLoading: loadingDS } = useQuery({
         queryKey: ['datasources'],
@@ -58,12 +53,6 @@ export default function DataIntegration() {
         queryKey: ['pipelines', selectedDS],
         queryFn: () => integrationApi.getPipelines(selectedDS!),
         enabled: selectedDS !== null,
-    });
-
-    // Fetch ERP Integrations
-    const { data: erpIntegrations = [], isLoading: loadingErp } = useQuery({
-        queryKey: ['erp-integrations'],
-        queryFn: integrationApi.listErpIntegrations,
     });
 
     // Mutations
@@ -116,31 +105,6 @@ export default function DataIntegration() {
         }
     });
 
-    // ERP Mutations
-    const createErpMutation = useMutation({
-        mutationFn: integrationApi.createErpIntegration,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['erp-integrations'] });
-            toast.success('ERP Integration added successfully');
-            setErpForm({ name: '', url: '', method: 'GET', auth_header_key: '', auth_header_value: '', cron_schedule: '0 0 * * *' });
-        },
-        onError: (err: any) => toast.error('Failed to add ERP Integration: ' + err.message)
-    });
-
-    const deleteErpMutation = useMutation({
-        mutationFn: integrationApi.deleteErpIntegration,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['erp-integrations'] });
-            toast.success('ERP Integration deleted');
-        }
-    });
-
-    const syncErpMutation = useMutation({
-        mutationFn: integrationApi.syncErpIntegration,
-        onSuccess: () => toast.success('ERP Sync started in background!'),
-        onError: (err: any) => toast.error('Failed to trigger sync: ' + err.message)
-    });
-
     // Handlers
     const handleAddConn = (e: React.FormEvent) => {
         e.preventDefault();
@@ -149,11 +113,6 @@ export default function DataIntegration() {
 
     const handleTestConn = () => {
         testConnMutation.mutate(connForm);
-    };
-
-    const handleAddErp = (e: React.FormEvent) => {
-        e.preventDefault();
-        createErpMutation.mutate(erpForm);
     };
 
     const buildExpression = (cols: string[], sep: string = ' ') => {
@@ -325,15 +284,6 @@ export default function DataIntegration() {
                         <Server className="w-4 h-4" /> Relational Connections
                     </button>
                     <button
-                        onClick={() => setActiveTab('erp')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all ${activeTab === 'erp'
-                            ? 'bg-background text-foreground shadow-sm'
-                            : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
-                            }`}
-                    >
-                        <LinkIcon className="w-4 h-4" /> ERP API Push/Pull
-                    </button>
-                    <button
                         onClick={() => setActiveTab('pipeline')}
                         className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm transition-all ${activeTab === 'pipeline'
                             ? 'bg-background text-foreground shadow-sm'
@@ -426,93 +376,6 @@ export default function DataIntegration() {
                                         ))}
                                     </ul>
                                 )}
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'erp' && (
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div className="lg:col-span-1 space-y-6">
-                                <div className="bg-card rounded-xl p-6 border border-border shadow-sm">
-                                    <h2 className="text-xl font-semibold tracking-tight mb-4 flex items-center gap-2 text-foreground">
-                                        <DatabaseZap className="w-5 h-5 text-primary" /> Active Integrations
-                                    </h2>
-                                    {loadingErp ? (
-                                        <div className="animate-pulse bg-muted rounded-md h-24"></div>
-                                    ) : (!erpIntegrations || erpIntegrations.length === 0) ? (
-                                        <div className="text-center p-6 bg-black/5 rounded-lg border border-dashed border-border/40">
-                                            <p className="text-sm text-muted-foreground">No ERP integrations found.</p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            {erpIntegrations.map(erp => (
-                                                <div key={erp.id} className="p-4 rounded-xl border border-border hover:border-primary/50 transition-all bg-background shadow-sm group">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <h3 className="font-semibold text-foreground truncate max-w-[150px]">{erp.name}</h3>
-                                                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">{erp.method}</span>
-                                                    </div>
-                                                    <p className="text-xs text-muted-foreground truncate mb-3">{erp.url}</p>
-                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-                                                        <Clock className="w-3 h-3" /> {erp.cron_schedule || 'Manual'}
-                                                    </div>
-                                                    <div className="flex items-center gap-2 border-t border-border/40 pt-3">
-                                                        <button onClick={() => syncErpMutation.mutate(erp.id!)} disabled={syncErpMutation.isPending} className="flex-1 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md text-xs font-medium hover:brightness-110 transition-colors">
-                                                            <RefreshCw className={`w-3 h-3 inline mr-1 ${syncErpMutation.isPending ? 'animate-spin' : ''}`} /> Sync Now
-                                                        </button>
-                                                        <button onClick={() => deleteErpMutation.mutate(erp.id!)} className="px-3 py-1.5 bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-md text-xs font-medium transition-all">
-                                                            Delete
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="lg:col-span-2 space-y-6">
-                                <div className="bg-card rounded-xl p-8 border border-border shadow-sm">
-                                    <h2 className="text-2xl font-semibold tracking-tight mb-6 flex items-center text-foreground">Buat Koneksi ERP Baru <InfoTooltip info="Hubungkan sistem ERP eksternal." side="right" /></h2>
-                                    <form onSubmit={handleAddErp} className="space-y-5">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-medium text-foreground">Nama Integrasi</label>
-                                                <input required type="text" disabled={createErpMutation.isPending} placeholder="e.g. SAP Logistics Alpha" value={erpForm.name} onChange={e => setErpForm({ ...erpForm, name: e.target.value })} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none transition-all" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-medium text-foreground">Metode HTTP</label>
-                                                <select value={erpForm.method} disabled={createErpMutation.isPending} onChange={e => setErpForm({ ...erpForm, method: e.target.value })} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none transition-all">
-                                                    <option value="GET">GET</option>
-                                                    <option value="POST">POST</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium text-foreground">URL Endpoint API</label>
-                                            <input required type="url" disabled={createErpMutation.isPending} placeholder="https://api.erp.example.com/v1/data" value={erpForm.url} onChange={e => setErpForm({ ...erpForm, url: e.target.value })} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none transition-all" />
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-4 rounded-lg bg-black/5 border border-border/40">
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-medium text-foreground flex items-center gap-1"><Key className="w-3 h-3" /> Header Key <span className="text-xs text-muted-foreground">(Optional)</span></label>
-                                                <input type="text" disabled={createErpMutation.isPending} placeholder="Authorization / x-api-key" value={erpForm.auth_header_key} onChange={e => setErpForm({ ...erpForm, auth_header_key: e.target.value })} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none transition-all" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-medium text-foreground">Nilai Header / Kunci Rahasia</label>
-                                                <input type="password" disabled={createErpMutation.isPending} placeholder="Bearer eyJhbGci..." value={erpForm.auth_header_value} onChange={e => setErpForm({ ...erpForm, auth_header_value: e.target.value })} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none transition-all" />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium text-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Cron Execution Schedule</label>
-                                            <input type="text" disabled={createErpMutation.isPending} placeholder="0 0 * * *" value={erpForm.cron_schedule} onChange={e => setErpForm({ ...erpForm, cron_schedule: e.target.value })} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-mono text-foreground focus:ring-2 focus:ring-primary focus:outline-none transition-all" />
-                                        </div>
-                                        <div className="pt-2">
-                                            <button type="submit" disabled={createErpMutation.isPending} className="w-auto px-6 h-10 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground font-medium text-sm transition-all hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50">
-                                                {createErpMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                                                Save Integration
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
                             </div>
                         </div>
                     )}
@@ -843,31 +706,6 @@ export default function DataIntegration() {
                                                             </div>
                                                         ))}
                                                     </div>
-                                                </div>
-
-                                                <div className="pt-6 border-t border-border/40">
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <Clock className="w-5 h-5 text-primary" />
-                                                            <h3 className="font-bold text-foreground">Jadwal Otomasi</h3>
-                                                        </div>
-                                                        <label className="relative inline-flex items-center cursor-pointer">
-                                                            <input type="checkbox" className="sr-only peer" checked={cronActive} onChange={(e) => setCronActive(e.target.checked)} />
-                                                            <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                                                        </label>
-                                                    </div>
-                                                    {cronActive && (
-                                                        <div className="flex gap-4 animate-in slide-in-from-top-2 duration-200">
-                                                            <select className="flex-1 rounded-lg border border-input bg-background px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary focus:outline-none" value={cronSchedule} onChange={(e) => setCronSchedule(e.target.value)}>
-                                                                <option value="0 * * * *">Per Jam (Hourly)</option>
-                                                                <option value="0 0 * * *">Setiap Tengah Malam (Daily)</option>
-                                                                <option value="0 2 * * *">Dini Hari (2 AM Daily)</option>
-                                                                <option value="0 0 * * 0">Mingguan (Hari Minggu)</option>
-                                                                <option value="0 0 1 * *">Bulanan (Tanggal 1)</option>
-                                                            </select>
-                                                            <div className="bg-muted px-4 py-2.5 rounded-lg flex items-center justify-center font-mono text-xs text-muted-foreground">{cronSchedule}</div>
-                                                        </div>
-                                                    )}
                                                 </div>
                                             </div>
 

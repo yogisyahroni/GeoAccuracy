@@ -22,7 +22,7 @@ type DataSource struct {
 type TransformationPipeline struct {
 	ID           int64           `json:"id"`
 	UserID       int64           `json:"user_id"`
-	DataSourceID int64           `json:"data_source_id"`
+	DataSourceID *int64          `json:"data_source_id"`
 	Name         string          `json:"name" binding:"required"`
 	Config       json.RawMessage `json:"config" binding:"required"` // JSON containing joins & column mappings
 	CreatedAt    time.Time       `json:"created_at"`

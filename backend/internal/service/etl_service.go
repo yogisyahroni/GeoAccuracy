@@ -42,6 +42,22 @@ type ColumnMapping struct {
 	Expression   string `json:"expression"`    // "CONCAT(t1.address1, ' ', t1.address2)" or just "t1.lat"
 }
 
+// MultiSourceConfig is the new flexible configuration for orchestrating multiple databases
+type MultiSourceConfig struct {
+	Sources    []SourceConfig   `json:"sources"`
+	JoinKey    string           `json:"join_key"` // The common column across all sources, e.g., "connote"
+	Mappings   []ColumnMapping  `json:"mappings"`
+	Limit      int              `json:"limit,omitempty"`
+}
+
+type SourceConfig struct {
+	DataSourceID int64          `json:"data_source_id"`
+	BaseTable    string         `json:"base_table"`
+	Joins        []JoinConfig   `json:"joins"`
+	Filters      []FilterConfig `json:"filters,omitempty"`
+	Alias        string         `json:"alias"` // e.g., "erp" or "courier"
+}
+
 type ETLService interface {
 	BuildSQL(config *PipelineConfig, provider string) (string, error)
 	PreviewData(ctx context.Context, pipeline *domain.TransformationPipeline) ([]map[string]interface{}, error)
