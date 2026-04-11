@@ -62,15 +62,15 @@ export default function DataIntegration() {
     // Mutations
     const testConnMutation = useMutation({
         mutationFn: integrationApi.testConnection,
-        onSuccess: () => alert('Connection Successful!'),
-        onError: (err: any) => alert('Connection Failed: ' + err.message)
+        onSuccess: () => toast.success('Connection Successful!'),
+        onError: (err: any) => toast.error('Connection Failed: ' + err.message)
     });
 
     const createConnMutation = useMutation({
         mutationFn: integrationApi.createDataSource,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['datasources'] });
-            alert('Source added successfully');
+            toast.success('Source added successfully');
             setConnForm({ ...connForm, name: '', password: '' });
         }
     });
@@ -85,7 +85,6 @@ export default function DataIntegration() {
         mutationFn: integrationApi.runPipeline,
         onSuccess: (data) => {
             toast.success(`Pipeline Execution Complete! Validated ${data.results?.length} records.`);
-            // Automatically switch to history/analytics or keep them here
         },
         onError: (err: any) => toast.error('Execution Failed: ' + err.message)
     });
@@ -151,8 +150,6 @@ export default function DataIntegration() {
     };
 
     const handlePreview = () => {
-        // FIX BUG-10: validate selectedDS before constructing pipeline.
-        // Without this guard, data_source_id: null was sent to the backend → 500 error.
         if (!selectedDS) {
             toast.error("Pilih koneksi database terlebih dahulu.");
             return;
@@ -175,7 +172,6 @@ export default function DataIntegration() {
     };
 
     const handleRun = () => {
-        // FIX BUG-10: validate selectedDS before constructing pipeline.
         if (!selectedDS) {
             toast.error("Pilih koneksi database terlebih dahulu.");
             return;
@@ -195,7 +191,7 @@ export default function DataIntegration() {
             }
         };
         toast.promise(runMutation.mutateAsync(pipeline), {
-            loading: 'Stream processing millions of rows... this may take some time depending on dataset size.',
+            loading: 'Stream processing millions of rows...',
             success: 'Pipeline extraction and validation stream finished!',
             error: 'Failed to run pipeline.'
         });
@@ -250,6 +246,7 @@ export default function DataIntegration() {
         savePipelineMutation.mutate(pipeline);
     };
 
+    const currentDS = dataSources.find(ds => ds.id === selectedDS);
 
     return (
         <div className="space-y-6">
@@ -294,66 +291,63 @@ export default function DataIntegration() {
 
                 {/* Main Content Area */}
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 ease-in-out">
-                    {/* --- RELATIONAL DATABASES TAB --- */}
                     {activeTab === 'connections' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Add Connection Form */}
                             <div className="bg-card p-6 rounded-lg border border-border shadow-sm">
-                                <h2 className="text-lg font-semibold mb-4 flex items-center">Tambah Database
-                                    <InfoTooltip info="Sambungkan ke database eksternal (PostgreSQL/MySQL). Data dari database ini dapat digunakan sebagai sumber pipeline ETL untuk validasi geolokasi." side="right" />
+                                <h2 className="text-lg font-semibold mb-4 flex items-center text-foreground">Tambah Database
+                                    <InfoTooltip info="Sambungkan ke database eksternal (PostgreSQL/MySQL)." side="right" />
                                 </h2>
                                 <form onSubmit={handleAddConn} className="space-y-4">
                                     <div>
-                                        <label className="block text-sm font-medium mb-1 flex items-center">Nama Koneksi <InfoTooltip info="Nama pengenal untuk koneksi ini. Gunakan nama yang mudah diingat." example="Contoh: Database Produksi, DB Warehouse" /></label>
-                                        <input required type="text" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={connForm.name} onChange={e => setConnForm({ ...connForm, name: e.target.value })} />
+                                        <label className="block text-sm font-medium mb-1 text-foreground">Nama Koneksi</label>
+                                        <input required type="text" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none" value={connForm.name} onChange={e => setConnForm({ ...connForm, name: e.target.value })} />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium mb-1">Provider</label>
-                                            <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={connForm.provider} onChange={e => setConnForm({ ...connForm, provider: e.target.value as any })}>
+                                            <label className="block text-sm font-medium mb-1 text-foreground">Provider</label>
+                                            <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none" value={connForm.provider} onChange={e => setConnForm({ ...connForm, provider: e.target.value as any })}>
                                                 <option value="postgresql">PostgreSQL</option>
                                                 <option value="mysql">MySQL</option>
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium mb-1">Host</label>
-                                            <input required type="text" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={connForm.host} onChange={e => setConnForm({ ...connForm, host: e.target.value })} />
+                                            <label className="block text-sm font-medium mb-1 text-foreground">Host</label>
+                                            <input required type="text" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none" value={connForm.host} onChange={e => setConnForm({ ...connForm, host: e.target.value })} />
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium mb-1">Port</label>
-                                            <input required type="number" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={connForm.port} onChange={e => setConnForm({ ...connForm, port: parseInt(e.target.value) })} />
+                                            <label className="block text-sm font-medium mb-1 text-foreground">Port</label>
+                                            <input required type="number" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none" value={connForm.port} onChange={e => setConnForm({ ...connForm, port: parseInt(e.target.value) })} />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium mb-1">Database</label>
-                                            <input required type="text" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={connForm.database} onChange={e => setConnForm({ ...connForm, database: e.target.value })} />
+                                            <label className="block text-sm font-medium mb-1 text-foreground">Database</label>
+                                            <input required type="text" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none" value={connForm.database} onChange={e => setConnForm({ ...connForm, database: e.target.value })} />
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium mb-1">Username</label>
-                                            <input required type="text" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={connForm.username} onChange={e => setConnForm({ ...connForm, username: e.target.value })} />
+                                            <label className="block text-sm font-medium mb-1 text-foreground">Username</label>
+                                            <input required type="text" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none" value={connForm.username} onChange={e => setConnForm({ ...connForm, username: e.target.value })} />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium mb-1">Password</label>
-                                            <input required type="password" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={connForm.password} onChange={e => setConnForm({ ...connForm, password: e.target.value })} />
+                                            <label className="block text-sm font-medium mb-1 text-foreground">Password</label>
+                                            <input required type="password" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none" value={connForm.password} onChange={e => setConnForm({ ...connForm, password: e.target.value })} />
                                         </div>
                                     </div>
                                     <div className="flex gap-3 pt-2">
-                                        <button type="button" onClick={handleTestConn} disabled={testConnMutation.isPending} className="flex-1 bg-secondary text-secondary-foreground py-2 rounded-md font-medium hover:brightness-110 flex items-center justify-center gap-2">
+                                        <button type="button" onClick={handleTestConn} disabled={testConnMutation.isPending} className="flex-1 bg-secondary text-secondary-foreground py-2 rounded-md font-medium hover:brightness-110 flex items-center justify-center gap-2 transition-all">
                                             {testConnMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />} Test Connection
                                         </button>
-                                        <button type="submit" disabled={createConnMutation.isPending} className="flex-1 bg-primary text-primary-foreground py-2 rounded-md font-medium hover:brightness-110 flex items-center justify-center gap-2">
+                                        <button type="submit" disabled={createConnMutation.isPending} className="flex-1 bg-primary text-primary-foreground py-2 rounded-md font-medium hover:brightness-110 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
                                             <Plus className="w-4 h-4" /> Save Source
                                         </button>
                                     </div>
                                 </form>
                             </div>
 
-                            {/* Saved Connections */}
                             <div className="bg-card p-6 rounded-lg border border-border shadow-sm">
-                                <h2 className="text-lg font-semibold mb-4">Saved Connections</h2>
+                                <h2 className="text-lg font-semibold mb-4 text-foreground">Saved Connections</h2>
                                 {loadingDS ? (
                                     <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
                                 ) : (!dataSources || dataSources.length === 0) ? (
@@ -364,14 +358,15 @@ export default function DataIntegration() {
                                 ) : (
                                     <ul className="space-y-3">
                                         {(dataSources || []).map(ds => (
-                                            <li key={ds.id} className="p-3 bg-background border border-border rounded-md flex justify-between items-center group cursor-pointer hover:border-primary transition-colors" onClick={() => { setSelectedDS(ds.id); setActiveTab('pipeline'); }}>
+                                            <li key={ds.id} className="p-3 bg-background border border-border rounded-md flex justify-between items-center group cursor-pointer hover:border-primary hover:shadow-md transition-all" onClick={() => { setSelectedDS(ds.id); setActiveTab('pipeline'); }}>
                                                 <div className="flex items-center gap-3">
-                                                    <Server className="h-5 w-5 text-muted-foreground" />
+                                                    <Server className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
                                                     <div>
-                                                        <p className="font-medium text-sm">{ds.name}</p>
-                                                        <p className="text-xs text-muted-foreground font-mono">{ds.provider}://{ds.host}:{ds.port}/{ds.database}</p>
+                                                        <p className="font-medium text-sm text-foreground">{ds.name}</p>
+                                                        <p className="text-xs text-muted-foreground font-mono truncate max-w-[200px]">{ds.provider}://{ds.host}/{ds.database}</p>
                                                     </div>
                                                 </div>
+                                                <Plus className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                                             </li>
                                         ))}
                                     </ul>
@@ -380,14 +375,11 @@ export default function DataIntegration() {
                         </div>
                     )}
 
-                    {/* --- ERP INTEGRATION TAB --- */}
                     {activeTab === 'erp' && (
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                            {/* ERP Integrations List */}
                             <div className="lg:col-span-1 space-y-6">
-                                <div className="bg-card rounded-xl p-6 border border-border shadow-sm transition-all">
-                                    <h2 className="text-xl font-semibold tracking-tight mb-4 flex items-center gap-2">
+                                <div className="bg-card rounded-xl p-6 border border-border shadow-sm">
+                                    <h2 className="text-xl font-semibold tracking-tight mb-4 flex items-center gap-2 text-foreground">
                                         <DatabaseZap className="w-5 h-5 text-primary" /> Active Integrations
                                     </h2>
                                     {loadingErp ? (
@@ -399,7 +391,7 @@ export default function DataIntegration() {
                                     ) : (
                                         <div className="space-y-3">
                                             {erpIntegrations.map(erp => (
-                                                <div key={erp.id} className="p-4 rounded-xl border border-border hover:border-primary/50 transition-colors bg-background shadow-sm group">
+                                                <div key={erp.id} className="p-4 rounded-xl border border-border hover:border-primary/50 transition-all bg-background shadow-sm group">
                                                     <div className="flex justify-between items-start mb-2">
                                                         <h3 className="font-semibold text-foreground truncate max-w-[150px]">{erp.name}</h3>
                                                         <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">{erp.method}</span>
@@ -408,18 +400,11 @@ export default function DataIntegration() {
                                                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
                                                         <Clock className="w-3 h-3" /> {erp.cron_schedule || 'Manual'}
                                                     </div>
-                                                    <div className="flex items-center gap-2 border-t pt-3">
-                                                        <button
-                                                            onClick={() => syncErpMutation.mutate(erp.id!)}
-                                                            disabled={syncErpMutation.isPending}
-                                                            className="flex-1 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md text-xs font-medium hover:bg-secondary/80 transition-colors"
-                                                        >
-                                                            <RefreshCw className="w-3 h-3 inline mr-1" /> Sync Now
+                                                    <div className="flex items-center gap-2 border-t border-border/40 pt-3">
+                                                        <button onClick={() => syncErpMutation.mutate(erp.id!)} disabled={syncErpMutation.isPending} className="flex-1 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md text-xs font-medium hover:brightness-110 transition-colors">
+                                                            <RefreshCw className={`w-3 h-3 inline mr-1 ${syncErpMutation.isPending ? 'animate-spin' : ''}`} /> Sync Now
                                                         </button>
-                                                        <button
-                                                            onClick={() => deleteErpMutation.mutate(erp.id!)}
-                                                            className="px-3 py-1.5 bg-destructive/10 text-destructive hover:bg-destructive text-white rounded-md text-xs font-medium transition-colors"
-                                                        >
+                                                        <button onClick={() => deleteErpMutation.mutate(erp.id!)} className="px-3 py-1.5 bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-md text-xs font-medium transition-all">
                                                             Delete
                                                         </button>
                                                     </div>
@@ -430,95 +415,43 @@ export default function DataIntegration() {
                                 </div>
                             </div>
 
-                            {/* Add ERP Form */}
                             <div className="lg:col-span-2 space-y-6">
                                 <div className="bg-card rounded-xl p-8 border border-border shadow-sm">
-                                    <h2 className="text-2xl font-semibold tracking-tight mb-6 flex items-center">Buat Koneksi ERP Baru <InfoTooltip info="Hubungkan sistem ERP eksternal (SAP, Oracle, dsb.) melalui HTTP API. Data akan ditarik/dikirim secara otomatis sesuai jadwal Cron yang ditentukan." side="right" /></h2>
+                                    <h2 className="text-2xl font-semibold tracking-tight mb-6 flex items-center text-foreground">Buat Koneksi ERP Baru <InfoTooltip info="Hubungkan sistem ERP eksternal." side="right" /></h2>
                                     <form onSubmit={handleAddErp} className="space-y-5">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium text-foreground flex items-center">Nama Integrasi <InfoTooltip info="Nama pengenal untuk integrasi ERP ini. Pilih nama yang mencerminkan sistem sumber dan tujuannya." example="Contoh: SAP Logistik Alpha, Oracle WMS Surabaya" /></label>
-                                                <input
-                                                    required type="text"
-                                                    disabled={createErpMutation.isPending}
-                                                    placeholder="e.g. SAP Logistics Alpha"
-                                                    value={erpForm.name}
-                                                    onChange={e => setErpForm({ ...erpForm, name: e.target.value })}
-                                                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-all"
-                                                />
+                                                <label className="text-sm font-medium text-foreground">Nama Integrasi</label>
+                                                <input required type="text" disabled={createErpMutation.isPending} placeholder="e.g. SAP Logistics Alpha" value={erpForm.name} onChange={e => setErpForm({ ...erpForm, name: e.target.value })} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none transition-all" />
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium text-foreground flex items-center">Metode HTTP <InfoTooltip info="Pilih GET untuk mengambil data dari API ERP (pull). Pilih POST untuk mengirim data ke API ERP (push)." example="GET = Ambil data dari ERP  |  POST = Kirim data ke ERP" /></label>
-                                                <select
-                                                    value={erpForm.method}
-                                                    disabled={createErpMutation.isPending}
-                                                    onChange={e => setErpForm({ ...erpForm, method: e.target.value })}
-                                                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-all"
-                                                >
+                                                <label className="text-sm font-medium text-foreground">Metode HTTP</label>
+                                                <select value={erpForm.method} disabled={createErpMutation.isPending} onChange={e => setErpForm({ ...erpForm, method: e.target.value })} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none transition-all">
                                                     <option value="GET">GET</option>
                                                     <option value="POST">POST</option>
                                                 </select>
                                             </div>
                                         </div>
-
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-foreground flex items-center">URL Endpoint API <InfoTooltip info="Alamat lengkap endpoint API ERP yang akan dipanggil. Harus diawali dengan https:// untuk keamanan." example="https://api.erp-perusahaan.com/v1/shipments" /></label>
-                                            <input
-                                                required type="url"
-                                                disabled={createErpMutation.isPending}
-                                                placeholder="https://api.erp.example.com/v1/data"
-                                                value={erpForm.url}
-                                                onChange={e => setErpForm({ ...erpForm, url: e.target.value })}
-                                                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-all"
-                                            />
-                                            <p className="text-xs text-muted-foreground mt-1">Data from this endpoint must correspond to the standard Webhook Payload format.</p>
+                                            <label className="text-sm font-medium text-foreground">URL Endpoint API</label>
+                                            <input required type="url" disabled={createErpMutation.isPending} placeholder="https://api.erp.example.com/v1/data" value={erpForm.url} onChange={e => setErpForm({ ...erpForm, url: e.target.value })} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none transition-all" />
                                         </div>
-
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-4 rounded-lg bg-black/5 border border-border/40">
                                             <div className="space-y-2">
                                                 <label className="text-sm font-medium text-foreground flex items-center gap-1"><Key className="w-3 h-3" /> Header Key <span className="text-xs text-muted-foreground">(Optional)</span></label>
-                                                <input
-                                                    type="text"
-                                                    disabled={createErpMutation.isPending}
-                                                    placeholder="Authorization / x-api-key"
-                                                    value={erpForm.auth_header_key}
-                                                    onChange={e => setErpForm({ ...erpForm, auth_header_key: e.target.value })}
-                                                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-all"
-                                                />
+                                                <input type="text" disabled={createErpMutation.isPending} placeholder="Authorization / x-api-key" value={erpForm.auth_header_key} onChange={e => setErpForm({ ...erpForm, auth_header_key: e.target.value })} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none transition-all" />
                                             </div>
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium text-foreground flex items-center">Nilai Header / Kunci Rahasia <InfoTooltip info="Nilai token atau API key yang akan dikirim pada header. Disimpan terenkripsi AES-256. Jangan bagikan nilai ini." example="Bearer eyJhbGci...  atau  sk_live_xxxxxxxxxxx" /></label>
-                                                <input
-                                                    type="password"
-                                                    disabled={createErpMutation.isPending}
-                                                    placeholder="Bearer eyJhbGci..."
-                                                    value={erpForm.auth_header_value}
-                                                    onChange={e => setErpForm({ ...erpForm, auth_header_value: e.target.value })}
-                                                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-all"
-                                                />
-                                                <p className="text-[10px] text-muted-foreground mt-1">AES-256 Encrypted at rest.</p>
+                                                <label className="text-sm font-medium text-foreground">Nilai Header / Kunci Rahasia</label>
+                                                <input type="password" disabled={createErpMutation.isPending} placeholder="Bearer eyJhbGci..." value={erpForm.auth_header_value} onChange={e => setErpForm({ ...erpForm, auth_header_value: e.target.value })} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none transition-all" />
                                             </div>
                                         </div>
-
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium text-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Cron Execution Schedule</label>
-                                            <input
-                                                type="text"
-                                                disabled={createErpMutation.isPending}
-                                                placeholder="0 0 * * *"
-                                                value={erpForm.cron_schedule}
-                                                onChange={e => setErpForm({ ...erpForm, cron_schedule: e.target.value })}
-                                                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-mono focus:outline-none focus:ring-2 focus:ring-ring transition-all"
-                                            />
-                                            <p className="text-xs text-muted-foreground mt-1">Format: <b>* * * * *</b> (Min, Hr, DayOfMonth, Month, DayOfWeek). Leave empty for manual trigger only.</p>
+                                            <input type="text" disabled={createErpMutation.isPending} placeholder="0 0 * * *" value={erpForm.cron_schedule} onChange={e => setErpForm({ ...erpForm, cron_schedule: e.target.value })} className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-mono text-foreground focus:ring-2 focus:ring-primary focus:outline-none transition-all" />
                                         </div>
-
                                         <div className="pt-2">
-                                            <button
-                                                type="submit"
-                                                disabled={createErpMutation.isPending}
-                                                className="w-auto px-6 h-10 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground font-medium text-sm transition-all hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
-                                            >
+                                            <button type="submit" disabled={createErpMutation.isPending} className="w-auto px-6 h-10 inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground font-medium text-sm transition-all hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50">
                                                 {createErpMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                                                 Save Integration
                                             </button>
@@ -529,216 +462,280 @@ export default function DataIntegration() {
                         </div>
                     )}
 
-                    {/* --- PIPELINES TAB --- */}
                     {activeTab === 'pipeline' && (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {/* Source Schema Explorer */}
-                            <div className="bg-card p-6 rounded-lg border border-border shadow-sm md:col-span-1">
-                                <h2 className="text-lg font-semibold mb-4">Source Schema</h2>
-                                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm mb-4" value={selectedDS || ''} onChange={e => setSelectedDS(Number(e.target.value))}>
-                                    <option value="" disabled>Select a connection...</option>
-                                    {dataSources && dataSources.map(ds => <option key={ds.id} value={ds.id}>{ds.name}</option>)}
-                                </select>
-
-                                {loadingSchema ? (
-                                    <div className="flex justify-center p-4"><Loader2 className="h-4 w-4 animate-spin" /></div>
-                                ) : (schema && schema.length > 0) ? (
-                                    <div className="overflow-y-auto max-h-[500px] text-sm pr-2">
-                                        {(schema || []).map(table => (
-                                            <div key={table.name} className="mb-4">
-                                                <div className="font-semibold bg-muted px-2 py-1 rounded cursor-pointer" onClick={() => setBaseTable(table.name)}>
-                                                    {table.name}
-                                                </div>
-                                                <ul className="pl-4 mt-1 space-y-1 text-muted-foreground font-mono text-xs">
-                                                    {(table.columns || []).map(col => (
-                                                        <li key={col.name} className="flex justify-between">
-                                                            <span>{col.name}</span>
-                                                            <span className="opacity-50">{col.data_type}</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        ))}
+                        <div className="space-y-6">
+                            {!selectedDS ? (
+                                <div className="space-y-6 max-w-4xl mx-auto">
+                                    <div className="text-center space-y-2">
+                                        <h2 className="text-xl font-bold text-foreground">Pilih Sumber Data Pertama</h2>
+                                        <p className="text-muted-foreground">Silakan tentukan koneksi database mana yang ingin Anda gunakan untuk membangun pipeline transformasi ini.</p>
                                     </div>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground text-center">Select a source to view schema</p>
-                                )}
-                            </div>
-
-                            {/* Mappings & Preview */}
-                            <div className="bg-card p-6 rounded-lg border border-border shadow-sm md:col-span-2 flex flex-col">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-lg font-semibold">Pipeline Configuration</h2>
-                                    {selectedDS !== null && (
-                                        <div className="flex gap-2">
-                                            <select
-                                                className="rounded-md border border-input bg-background px-3 py-1.5 text-sm w-48"
-                                                value={loadedPipelineId || ''}
-                                                onChange={handleLoadPipeline}
-                                            >
-                                                <option value="">-- New Pipeline --</option>
-                                                {(savedPipelines || []).map(p => (
-                                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                                ))}
-                                            </select>
-                                            {loadedPipelineId && (
-                                                <button
-                                                    onClick={() => { if (confirm('Delete this pipeline?')) deletePipelineMutation.mutate(loadedPipelineId); }}
-                                                    className="px-3 py-1.5 text-xs bg-destructive text-destructive-foreground rounded-md font-medium hover:brightness-110"
-                                                >
-                                                    Delete
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {loadingDS ? (
+                                            Array.from({ length: 3 }).map((_, i) => (
+                                                <div key={i} className="h-40 bg-card/50 rounded-xl border border-dashed border-border animate-pulse" />
+                                            ))
+                                        ) : (!dataSources || dataSources.length === 0) ? (
+                                            <div className="col-span-full text-center p-12 bg-card rounded-xl border border-dashed border-border">
+                                                <Database className="w-12 h-12 mx-auto mb-4 opacity-10" />
+                                                <p className="text-muted-foreground mb-4">Belum ada koneksi tersimpan.</p>
+                                                <button onClick={() => setActiveTab('connections')} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm">
+                                                    Tambah Koneksi Sekarang
                                                 </button>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="space-y-4 mb-6">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium mb-1 flex items-center">Nama Pipeline <InfoTooltip info="Nama untuk menyimpan konfigurasi pipeline ini. Anda dapat memilih pipeline yang tersimpan dari dropdown di atas." example="Contoh: Sync Harian Orders, ETL Bulanan" /></label>
-                                            <input type="text" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={pipelineName} onChange={e => setPipelineName(e.target.value)} placeholder="e.g. Daily Sync" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium mb-1 flex items-center">Tabel Utama (Base Table) <InfoTooltip info="Nama tabel utama di database sumber yang menjadi titik awal pengambilan data. Pipeline akan mulai query dari tabel ini." example="Contoh: orders, users, shipments" /></label>
-                                            <input type="text" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={baseTable} onChange={e => setBaseTable(e.target.value)} placeholder="e.g. users" />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1 flex items-center">Gabungkan Tabel (Table Joins) — Opsional <InfoTooltip info="Gabungkan tabel lain ke tabel utama menggunakan LEFT JOIN atau INNER JOIN. Berguna jika data alamat tersebar di beberapa tabel." example="LEFT JOIN: orders + users ON orders.user_id = users.id" /></label>
-                                        <div className="space-y-3">
-                                            {joins.map((j, idx) => (
-                                                <div key={idx} className="flex gap-3 items-start">
-                                                    <select className="w-24 rounded-md border border-input bg-background px-3 py-2 text-sm" value={j.type} onChange={e => { const newJ = [...joins]; newJ[idx].type = e.target.value; setJoins(newJ); }}>
-                                                        <option value="LEFT">LEFT</option>
-                                                        <option value="INNER">INNER</option>
-                                                    </select>
-                                                    <input type="text" className="full rounded-md border border-input bg-background px-3 py-2 text-sm flex-1" placeholder="Join Table (e.g. orders)" value={j.table} onChange={e => { const newJ = [...joins]; newJ[idx].table = e.target.value; setJoins(newJ); }} />
-                                                    <input type="text" className="full rounded-md border border-input bg-background px-3 py-2 text-sm flex-1" placeholder="Source Key (e.g. users.id)" value={j.on_source} onChange={e => { const newJ = [...joins]; newJ[idx].on_source = e.target.value; setJoins(newJ); }} />
-                                                    <span className="py-2 text-muted-foreground">=</span>
-                                                    <input type="text" className="full rounded-md border border-input bg-background px-3 py-2 text-sm flex-1" placeholder="Target Key (e.g. orders.user_id)" value={j.on_target} onChange={e => { const newJ = [...joins]; newJ[idx].on_target = e.target.value; setJoins(newJ); }} />
-                                                    <button onClick={() => setJoins(joins.filter((_, i) => i !== idx))} className="px-3 py-2 text-destructive hover:bg-destructive/10 rounded-md">X</button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <button type="button" onClick={() => setJoins([...joins, { type: 'LEFT', table: '', on_source: '', on_target: '' }])} className="mt-3 text-sm text-primary font-medium hover:underline">+ Add Join</button>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1 flex items-center">Filter Baris (Row Filters) — Opsional <InfoTooltip info="Saring data berdasarkan kondisi tertentu. Hanya baris yang memenuhi kondisi yang akan diproses oleh pipeline." example="Contoh: created_at >= 2024-01-01  |  status = active" /></label>
-                                        <div className="space-y-3">
-                                            {filters.map((f, idx) => (
-                                                <div key={idx} className="flex gap-3 items-start">
-                                                    <input type="text" className="full rounded-md border border-input bg-background px-3 py-2 text-sm flex-1" placeholder="Column (e.g. created_at)" value={f.column} onChange={e => { const newF = [...filters]; newF[idx].column = e.target.value; setFilters(newF); }} />
-                                                    <select className="w-24 rounded-md border border-input bg-background px-3 py-2 text-sm" value={f.operator} onChange={e => { const newF = [...filters]; newF[idx].operator = e.target.value; setFilters(newF); }}>
-                                                        <option value="=">=</option>
-                                                        <option value=">">&gt;</option>
-                                                        <option value="<">&lt;</option>
-                                                        <option value=">=">&gt;=</option>
-                                                        <option value="<=">&lt;=</option>
-                                                        <option value="!=">!=</option>
-                                                        <option value="LIKE">LIKE</option>
-                                                        <option value="ILIKE">ILIKE</option>
-                                                    </select>
-                                                    <input type="text" className="full rounded-md border border-input bg-background px-3 py-2 text-sm flex-1" placeholder="Value (e.g. 2024-01-01)" value={f.value} onChange={e => { const newF = [...filters]; newF[idx].value = e.target.value; setFilters(newF); }} />
-                                                    <button onClick={() => setFilters(filters.filter((_, i) => i !== idx))} className="px-3 py-2 text-destructive hover:bg-destructive/10 rounded-md">X</button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <button type="button" onClick={() => setFilters([...filters, { column: '', operator: '=', value: '' }])} className="mt-3 text-sm text-primary font-medium hover:underline">+ Add Filter</button>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium mb-1 flex items-center">Pemetaan Kolom (Column Mappings) <InfoTooltip info="Tentukan kolom target dan ekspresi SQL untuk menghasilkan alamat lengkap yang akan digeokode. Kolom 'full_address' wajib ada." example="full_address → CONCAT(jalan, ', ', kota, ', ', provinsi)" /></label>
-                                        <div className="space-y-3">
-                                            {mappings.map((m, idx) => (
-                                                <div key={idx} className="flex gap-3 items-start">
-                                                    <input type="text" className="w-1/3 rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="Target Field (e.g. full_address)" value={m.target_column} onChange={e => { const newM = [...mappings]; newM[idx].target_column = e.target.value; setMappings(newM); }} />
-                                                    <input type="text" className="full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono flex-1" placeholder="SQL Exp (e.g. CONCAT(address1, ' ', city))" value={m.expression} onChange={e => { const newM = [...mappings]; newM[idx].expression = e.target.value; setMappings(newM); }} />
-                                                    <button onClick={() => setMappings(mappings.filter((_, i) => i !== idx))} className="px-3 py-2 text-destructive hover:bg-destructive/10 rounded-md">X</button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <button type="button" onClick={() => setMappings([...mappings, { target_column: '', expression: '' }])} className="mt-3 text-sm text-primary font-medium hover:underline">+ Add Mapping</button>
-                                    </div>
-
-                                    <div className="pt-4 border-t border-border">
-                                        <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                                            <Clock className="w-4 h-4 text-primary" />
-                                            Otomatisasi &amp; Penjadwalan
-                                            <InfoTooltip info="Jalankan pipeline secara otomatis sesuai jadwal. Pipeline akan berjalan di background tanpa perlu klik manual." example="Setiap hari = 0 0 * * *  |  Setiap jam = 0 * * * *" side="right" />
-                                        </h3>
-                                        <div className="flex items-center gap-4">
-                                            <label className="flex items-center gap-2 text-sm">
-                                                <input type="checkbox" className="rounded text-primary focus:ring-primary" checked={cronActive} onChange={(e) => setCronActive(e.target.checked)} />
-                                                Aktifkan Eksekusi Terjadwal
-                                            </label>
-
-                                            {cronActive && (
-                                                <select
-                                                    className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                    value={cronSchedule}
-                                                    onChange={(e) => setCronSchedule(e.target.value)}
+                                            </div>
+                                        ) : (
+                                            dataSources.map(ds => (
+                                                <button
+                                                    key={ds.id}
+                                                    onClick={() => setSelectedDS(ds.id)}
+                                                    className="group relative p-6 bg-card rounded-xl border border-border shadow-sm hover:border-primary hover:shadow-xl hover:-translate-y-1 transition-all text-left overflow-hidden"
                                                 >
-                                                    <option value="0 * * * *">Hourly</option>
-                                                    <option value="0 0 * * *">Daily at Midnight</option>
-                                                    <option value="0 2 * * *">Daily at 2 AM</option>
-                                                    <option value="0 0 * * 0">Weekly (Sunday)</option>
-                                                    <option value="0 0 1 * *">Monthly (1st day)</option>
-                                                </select>
-                                            )}
-                                        </div>
+                                                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-100 group-hover:scale-125 group-hover:text-primary transition-all">
+                                                        <Server className="w-12 h-12" />
+                                                    </div>
+                                                    <div className="relative z-10 space-y-4">
+                                                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                                                            <DatabaseZap className="w-6 h-6" />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="font-bold text-foreground">{ds.name}</h3>
+                                                            <p className="text-xs text-muted-foreground font-mono mt-1 opacity-70">{ds.provider}://{ds.host}</p>
+                                                        </div>
+                                                        <div className="flex items-center text-xs font-semibold text-primary pt-2">
+                                                            Build Pipeline <Plus className="ml-1 w-3 h-3" />
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            ))
+                                        )}
                                     </div>
                                 </div>
-
-                                <div className="flex justify-end pt-4 border-t border-border gap-3 items-center">
-                                    <button onClick={handleSavePipeline} disabled={savePipelineMutation.isPending || !selectedDS || !baseTable || !pipelineName} className="text-primary font-medium text-sm hover:underline mr-auto">
-                                        {savePipelineMutation.isPending ? 'Saving...' : 'Save Pipeline'}
-                                    </button>
-                                    <button onClick={handlePreview} disabled={previewMutation.isPending || !baseTable} className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md font-medium hover:brightness-110 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                                        {previewMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-                                        Preview Mapping
-                                    </button>
-                                    <button onClick={handleRun} disabled={runMutation.isPending || !baseTable} className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium hover:brightness-110 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                                        {runMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <DatabaseZap className="w-4 h-4" />}
-                                        Run & Geocode Pipeline
-                                    </button>
-                                </div>
-
-                                {/* Preview Results Table */}
-                                {previewResults && (
-                                    <div className="mt-6 border border-border rounded-lg overflow-hidden">
-                                        <div className="bg-muted px-4 py-2 border-b border-border flex justify-between items-center">
-                                            <h3 className="font-medium text-sm">Preview (Top 10 max)</h3>
+                            ) : (
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in slide-in-from-right-4 duration-300">
+                                    <div className="lg:col-span-12 flex items-center justify-between p-4 bg-muted/40 border border-border/40 rounded-xl backdrop-blur-sm">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                                                <CheckCircle2 className="w-4 h-4" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Sumber Terpilih</p>
+                                                <h3 className="font-bold text-foreground flex items-center gap-2">
+                                                    {currentDS?.name} <span className="px-2 py-0.5 rounded-full bg-primary/10 text-[10px] text-primary">{currentDS?.provider}</span>
+                                                </h3>
+                                            </div>
                                         </div>
-                                        <div className="overflow-x-auto max-h-[300px]">
-                                            <table className="w-full text-sm text-left">
-                                                <thead className="text-xs text-muted-foreground uppercase bg-muted/50 sticky top-0">
-                                                    <tr>
-                                                        {Object.keys((previewResults && previewResults[0]) || {}).map(k => (
-                                                            <th key={k} className="px-4 py-3">{k}</th>
+                                        <button onClick={() => setSelectedDS(null)} className="px-4 py-1.5 bg-background border border-border hover:bg-muted rounded-lg text-xs font-semibold transition-all">
+                                            Ubah Koneksi
+                                        </button>
+                                    </div>
+
+                                    <div className="lg:col-span-4 bg-card p-6 rounded-xl border border-border shadow-sm max-h-[700px] overflow-y-auto">
+                                        <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-foreground">
+                                            <Server className="w-4 h-4 text-primary" /> Source Schema
+                                        </h2>
+                                        {loadingSchema ? (
+                                            <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+                                        ) : (schema && schema.length > 0) ? (
+                                            <div className="space-y-4">
+                                                {(schema || []).map(table => (
+                                                    <div key={table.name} className="group">
+                                                        <div
+                                                            className={`font-semibold text-sm px-3 py-2 rounded-lg cursor-pointer transition-all flex justify-between items-center ${baseTable === table.name ? 'bg-primary text-white' : 'bg-muted hover:bg-muted-foreground/10'}`}
+                                                            onClick={() => setBaseTable(table.name)}
+                                                        >
+                                                            {table.name}
+                                                            {baseTable === table.name && <CheckCircle2 className="w-3 h-3" />}
+                                                        </div>
+                                                        <ul className="pl-4 mt-2 space-y-1.5 border-l border-primary/20 ml-2">
+                                                            {(table.columns || []).map(col => (
+                                                                <li key={col.name} className="flex justify-between text-[11px] font-mono text-muted-foreground hover:text-foreground transition-colors px-2 py-0.5">
+                                                                    <span>{col.name}</span>
+                                                                    <span className="opacity-40 italic">{col.data_type}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground text-center p-8 border border-dashed rounded-lg">Skema tidak ditemukan.</p>
+                                        )}
+                                    </div>
+
+                                    <div className="lg:col-span-8 space-y-6">
+                                        <div className="bg-card p-8 rounded-xl border border-border shadow-lg flex flex-col">
+                                            <div className="flex items-center justify-between mb-8 pb-4 border-b border-border/40">
+                                                <h2 className="text-xl font-bold text-foreground">Konfigurasi Alur</h2>
+                                                <div className="flex gap-3">
+                                                    <select
+                                                        className="rounded-lg border border-input bg-background px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-primary focus:outline-none transition-all w-52"
+                                                        value={loadedPipelineId || ''}
+                                                        onChange={handleLoadPipeline}
+                                                    >
+                                                        <option value="">-- Buat Baru --</option>
+                                                        {(savedPipelines || []).map(p => (
+                                                            <option key={p.id} value={p.id}>{p.name}</option>
                                                         ))}
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {previewResults.length === 0 ? (
-                                                        <tr><td colSpan={100} className="px-4 py-4 text-center text-muted-foreground">No rows returned</td></tr>
-                                                    ) : (
-                                                        previewResults.map((row, i) => (
-                                                            <tr key={i} className="border-b border-border hover:bg-muted/20">
-                                                                {Object.values(row).map((v: any, j) => (
-                                                                    <td key={j} className="px-4 py-3 truncate max-w-[200px]" title={String(v)}>{String(v)}</td>
+                                                    </select>
+                                                    {loadedPipelineId && (
+                                                        <button
+                                                            onClick={() => { if (confirm('Hapus pipeline ini?')) deletePipelineMutation.mutate(loadedPipelineId); }}
+                                                            className="p-2 transition-all text-destructive hover:bg-destructive/10 rounded-lg"
+                                                            title="Hapus Pipeline"
+                                                        >
+                                                            <Plus className="rotate-45" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-8">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-bold text-foreground flex items-center gap-1">Nama Pipeline <InfoTooltip info="Nama unik untuk pipeline ini." /></label>
+                                                        <input type="text" className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none" value={pipelineName} onChange={e => setPipelineName(e.target.value)} placeholder="e.g. Sync Pengiriman Harian" />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-bold text-foreground flex items-center gap-1">Tabel Utama <InfoTooltip info="Tabel master untuk query ini." /></label>
+                                                        <input type="text" className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground font-mono focus:ring-2 focus:ring-primary focus:outline-none" value={baseTable} onChange={e => setBaseTable(e.target.value)} placeholder="e.g. shipping_data" />
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <label className="text-sm font-bold text-foreground flex items-center gap-1">Gabungkan Tabel (Joins) <InfoTooltip info="Hubungkan tabel lain." /></label>
+                                                    <div className="space-y-3">
+                                                        {joins.map((j, idx) => (
+                                                            <div key={idx} className="flex flex-wrap md:flex-nowrap gap-2 items-center p-4 bg-muted/20 rounded-xl border border-border/40 group">
+                                                                <select className="w-full md:w-28 rounded-lg border border-input bg-background px-3 py-2 text-xs font-bold" value={j.type} onChange={e => { const newJ = [...joins]; newJ[idx].type = e.target.value; setJoins(newJ); }}>
+                                                                    <option value="LEFT">LEFT</option>
+                                                                    <option value="INNER">INNER</option>
+                                                                </select>
+                                                                <input type="text" className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-xs font-mono" placeholder="Table" value={j.table} onChange={e => { const newJ = [...joins]; newJ[idx].table = e.target.value; setJoins(newJ); }} />
+                                                                <input type="text" className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-xs font-mono" placeholder="Key 1" value={j.on_source} onChange={e => { const newJ = [...joins]; newJ[idx].on_source = e.target.value; setJoins(newJ); }} />
+                                                                <span className="text-muted-foreground">=</span>
+                                                                <input type="text" className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-xs font-mono" placeholder="Key 2" value={j.on_target} onChange={e => { const newJ = [...joins]; newJ[idx].on_target = e.target.value; setJoins(newJ); }} />
+                                                                <button onClick={() => setJoins(joins.filter((_, i) => i !== idx))} className="p-2 text-destructive hover:bg-destructive/10 rounded-lg opacity-40 group-hover:opacity-100 transition-opacity"><Plus className="w-4 h-4 rotate-45" /></button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <button type="button" onClick={() => setJoins([...joins, { type: 'LEFT', table: '', on_source: '', on_target: '' }])} className="text-xs text-primary font-bold hover:brightness-110 flex items-center gap-1">
+                                                        <Plus className="w-3 h-3" /> Tambah Join
+                                                    </button>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <label className="text-sm font-bold text-foreground flex items-center gap-1">Mapping Kolom Alamat <InfoTooltip info="Field utama: full_address" /></label>
+                                                    <div className="space-y-3">
+                                                        {mappings.map((m, idx) => (
+                                                            <div key={idx} className="flex gap-2 items-center p-4 bg-primary/5 rounded-xl border border-primary/20 group">
+                                                                <input type="text" className="w-1/3 rounded-lg border border-input bg-background px-3 py-2 text-xs font-bold" placeholder="Field Target" value={m.target_column} onChange={e => { const newM = [...mappings]; newM[idx].target_column = e.target.value; setMappings(newM); }} />
+                                                                <input type="text" className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-xs font-mono" placeholder="SQL Expression (e.g. CONCAT(addr, ' ', city))" value={m.expression} onChange={e => { const newM = [...mappings]; newM[idx].expression = e.target.value; setMappings(newM); }} />
+                                                                {m.target_column !== 'full_address' && (
+                                                                    <button onClick={() => setMappings(mappings.filter((_, i) => i !== idx))} className="p-2 text-destructive hover:bg-destructive/10 rounded-lg"><Plus className="w-4 h-4 rotate-45" /></button>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div className="pt-6 border-t border-border/40">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <Clock className="w-5 h-5 text-primary" />
+                                                            <h3 className="font-bold text-foreground">Jadwal Otomasi</h3>
+                                                        </div>
+                                                        <label className="relative inline-flex items-center cursor-pointer">
+                                                            <input type="checkbox" className="sr-only peer" checked={cronActive} onChange={(e) => setCronActive(e.target.checked)} />
+                                                            <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                                        </label>
+                                                    </div>
+                                                    {cronActive && (
+                                                        <div className="flex gap-4 animate-in slide-in-from-top-2 duration-200">
+                                                            <select className="flex-1 rounded-lg border border-input bg-background px-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary focus:outline-none" value={cronSchedule} onChange={(e) => setCronSchedule(e.target.value)}>
+                                                                <option value="0 * * * *">Per Jam (Hourly)</option>
+                                                                <option value="0 0 * * *">Setiap Tengah Malam (Daily)</option>
+                                                                <option value="0 2 * * *">Dini Hari (2 AM Daily)</option>
+                                                                <option value="0 0 * * 0">Mingguan (Hari Minggu)</option>
+                                                                <option value="0 0 1 * *">Bulanan (Tanggal 1)</option>
+                                                            </select>
+                                                            <div className="bg-muted px-4 py-2.5 rounded-lg flex items-center justify-center font-mono text-xs text-muted-foreground">{cronSchedule}</div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex justify-end pt-10 mt-8 border-t border-border/40 gap-4">
+                                                <button onClick={handleSavePipeline} disabled={savePipelineMutation.isPending || !baseTable || !pipelineName} className="px-6 py-2.5 border border-primary text-primary rounded-xl font-bold text-sm hover:bg-primary/5 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50">
+                                                    {savePipelineMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Simpan Pipeline
+                                                </button>
+                                                <div className="flex gap-2">
+                                                    <button onClick={handlePreview} disabled={previewMutation.isPending || !baseTable} className="px-6 py-2.5 bg-secondary text-secondary-foreground rounded-xl font-bold text-sm hover:brightness-110 active:scale-95 transition-all flex items-center gap-2">
+                                                        {previewMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />} Preview
+                                                    </button>
+                                                    <button onClick={handleRun} disabled={runMutation.isPending || !baseTable} className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2 shadow-sm">
+                                                        {runMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <DatabaseZap className="w-4 h-4" />} Jalankan & Geocode
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {previewMutation.isPending && (
+                                            <div className="bg-card border border-border rounded-xl p-12 flex flex-col items-center justify-center gap-4 animate-in fade-in duration-300">
+                                                <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                                                <div className="text-center">
+                                                    <p className="font-bold text-lg">Menarik Data Preview...</p>
+                                                    <p className="text-muted-foreground text-sm">Sedang mengambil 100 sample data dari database sumber.</p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {previewResults && !previewMutation.isPending && (
+                                            <div className="bg-card border border-border rounded-xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-300">
+                                                <div className="bg-muted/50 px-6 py-4 border-b border-border flex justify-between items-center">
+                                                    <div className="flex flex-col">
+                                                        <h3 className="font-bold text-sm flex items-center gap-2">
+                                                            <Play className="w-4 h-4 text-primary" /> 
+                                                            Preview Data (Result Set)
+                                                        </h3>
+                                                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Menampilkan {previewResults.length} record sample</p>
+                                                    </div>
+                                                    <button onClick={() => setPreviewResults(null)} className="text-muted-foreground hover:text-destructive transition-colors p-1 hover:bg-destructive/10 rounded-full"><Plus className="rotate-45" /></button>
+                                                </div>
+                                                <div className="overflow-x-auto max-h-[500px] scrollbar-thin scrollbar-thumb-muted-foreground/20">
+                                                    <table className="w-full text-xs text-left">
+                                                        <thead className="bg-muted/30 text-muted-foreground uppercase font-bold tracking-wider sticky top-0 backdrop-blur-md border-b border-border/40 z-10">
+                                                            <tr>
+                                                                <th className="px-6 py-4 w-12 text-center bg-muted/20">#</th>
+                                                                {Object.keys((previewResults && previewResults[0]) || {}).map(k => (
+                                                                    <th key={k} className="px-6 py-4 min-w-[150px]">{k}</th>
                                                                 ))}
                                                             </tr>
-                                                        ))
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-border/40">
+                                                            {previewResults.length === 0 ? (
+                                                                <tr><td colSpan={100} className="px-6 py-12 text-center text-muted-foreground italic">Tidak ada data yang ditemukan untuk filter ini.</td></tr>
+                                                            ) : (
+                                                                previewResults.map((row, i) => (
+                                                                    <tr key={i} className="hover:bg-primary/5 transition-colors group">
+                                                                        <td className="px-6 py-4 text-center font-mono text-muted-foreground bg-muted/5 group-hover:bg-primary/10 transition-colors">{i + 1}</td>
+                                                                        {Object.values(row).map((v: any, j) => (
+                                                                            <td key={j} className="px-6 py-4 max-w-xs truncate overflow-hidden border-l border-border/10" title={String(v)}>{String(v)}</td>
+                                                                        ))}
+                                                                    </tr>
+                                                                ))
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <div className="bg-muted/30 px-6 py-3 border-t border-border flex items-center justify-between text-[10px] text-muted-foreground">
+                                                    <p>Gunakan tombol <span className="font-bold text-foreground">Preview</span> kembali jika mengubah filter atau mapping.</p>
+                                                    <p className="font-mono">LIMIT: 100 RECORDS</p>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

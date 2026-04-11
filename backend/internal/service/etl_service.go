@@ -192,7 +192,7 @@ func (s *etlService) PreviewData(ctx context.Context, pipeline *domain.Transform
 	}
 
 	// Force limit for preview
-	pConfig.Limit = 10
+	pConfig.Limit = 100
 
 	ds, err := s.dsRepo.GetByID(ctx, pipeline.DataSourceID, pipeline.UserID)
 	if err != nil || ds == nil {
