@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { integrationApi, DataSource, TableSchema, TransformationPipeline, ErpIntegrationRequest, ErpIntegration } from '../lib/api';
-import { Database, Plus, Play, Server, DatabaseZap, Loader2, Clock, CheckCircle2, RefreshCw, Key, Link as LinkIcon, Hash, MapPin, User, Navigation, Settings } from 'lucide-react';
+import { Database, Plus, Play, Server, DatabaseZap, Loader2, Clock, CheckCircle2, RefreshCw, Key, Link as LinkIcon, Hash, MapPin, User, Navigation, Settings, ChevronDown, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 
