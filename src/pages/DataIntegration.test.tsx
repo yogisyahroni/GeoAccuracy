@@ -50,17 +50,18 @@ describe('DataIntegration Component (Pipeline Builder)', () => {
 
         expect(screen.getByText(/Data Orchestrator/i)).toBeInTheDocument();
 
-        // Assert elements on DataSource tab
+        // Assert elements on DataSource tab - use more specific selector to avoid ambiguity
         await waitFor(() => {
-            expect(screen.getByText(/Repository/i)).toBeInTheDocument();
+            expect(screen.getByRole('heading', { name: /Mendaftarkan Repository/i })).toBeInTheDocument();
         });
     });
 
     it('switches to Pipeline builder tab successfully', async () => {
         renderWithProvider(<DataIntegration />);
 
-        const pipelineTabs = screen.getAllByText(/Local Pipeline/i);
-        fireEvent.click(pipelineTabs[1] || pipelineTabs[0]); // The tab button
+        // Use getByRole to target the specific tab button among other 'Local Pipeline' text occurrences
+        const pipelineTab = screen.getByRole('button', { name: /Local Pipeline/i });
+        fireEvent.click(pipelineTab);
 
         await waitFor(() => {
             // Check if pipeline builder empty state or form is visible
