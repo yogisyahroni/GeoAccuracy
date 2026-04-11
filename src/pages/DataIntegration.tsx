@@ -20,13 +20,14 @@ export default function DataIntegration() {
     const [baseTable, setBaseTable] = useState('');
     const [joins, setJoins] = useState([{ type: 'LEFT', table: '', on_source: '', on_target: '' }]);
     const [filters, setFilters] = useState([{ column: '', operator: '=', value: '' }]);
-    const [mappings, setMappings] = useState([
-        { target_column: 'connote', expression: '', label: 'Nomor Resi (Key)', icon: <Hash className="w-3 h-3" /> },
-        { target_column: 'full_address', expression: '', label: 'Alamat Sistem', icon: <MapPin className="w-3 h-3" /> },
-        { target_column: 'courier_id', expression: '', label: 'Courier ID / Name', icon: <User className="w-3 h-3" /> },
-        { target_column: 'latitude', expression: '', label: 'Field Lat (POD)', icon: <Navigation className="w-3 h-3" /> },
-        { target_column: 'longitude', expression: '', label: 'Field Long (POD)', icon: <Navigation className="w-3 h-3" /> },
+    const [mappings, setMappings] = useState<any[]>([
+        { target_column: 'connote', source_columns: [''], separator: ' ', label: 'Nomor Resi (Key)', icon: <Hash className="w-3 h-3" /> },
+        { target_column: 'full_address', source_columns: [''], separator: ' ', label: 'Alamat Sistem', icon: <MapPin className="w-3 h-3" /> },
+        { target_column: 'courier_id', source_columns: [''], separator: ' ', label: 'Courier ID / Name', icon: <User className="w-3 h-3" /> },
+        { target_column: 'latitude', source_columns: [''], separator: ' ', label: 'Field Lat (POD)', icon: <Navigation className="w-3 h-3" /> },
+        { target_column: 'longitude', source_columns: [''], separator: ' ', label: 'Field Long (POD)', icon: <Navigation className="w-3 h-3" /> },
     ]);
+    const [previewRows, setPreviewRows] = useState<any[]>([]); // For real-time inline table preview
     const [cronActive, setCronActive] = useState(false);
     const [cronSchedule, setCronSchedule] = useState('0 0 * * *');
     const [previewResults, setPreviewResults] = useState<any[] | null>(null);
@@ -155,6 +156,26 @@ export default function DataIntegration() {
         createErpMutation.mutate(erpForm);
     };
 
+    const buildExpression = (cols: string[], sep: string = ' ') => {
+        const filtered = cols.filter(c => c.trim() !== '');
+        if (filtered.length === 0) return "''";
+        if (filtered.length === 1) return filtered[0];
+        
+        return `CONCAT_WS('${sep}', ${filtered.join(', ')})`;
+    };
+
+    // Auto-update preview rows when table changes
+    useEffect(() => {
+        if (baseTable && selectedDS) {
+            const pipeline: TransformationPipeline = {
+                data_source_id: selectedDS,
+                name: 'InlinePreview',
+                config: { base_table: baseTable, mappings: [], joins: joins.filter(j => j.table && j.on_source && j.on_target) }
+            };
+            integrationApi.previewPipeline(pipeline).then(res => setPreviewRows(res.data.slice(0, 5))).catch(() => {});
+        }
+    }, [baseTable, selectedDS, joins]);
+
     const handlePreview = () => {
         if (!selectedDS) {
             toast.error("Pilih koneksi database terlebih dahulu.");
@@ -170,7 +191,10 @@ export default function DataIntegration() {
             config: {
                 base_table: baseTable,
                 joins: joins.filter(j => j.table && j.on_source && j.on_target),
-                mappings: mappings.filter(m => m.target_column && m.expression),
+                mappings: mappings.filter(m => m.target_column && m.source_columns?.some(c => c)).map(m => ({
+                    target_column: m.target_column,
+                    expression: buildExpression(m.source_columns, m.separator)
+                })),
                 filters: filters.filter(f => f.column && f.operator && f.value)
             }
         };
@@ -192,7 +216,10 @@ export default function DataIntegration() {
             config: {
                 base_table: baseTable,
                 joins: joins.filter(j => j.table && j.on_source && j.on_target),
-                mappings: mappings.filter(m => m.target_column && m.expression),
+                mappings: mappings.filter(m => m.target_column && m.source_columns?.some(c => c)).map(m => ({
+                    target_column: m.target_column,
+                    expression: buildExpression(m.source_columns)
+                })),
                 filters: filters.filter(f => f.column && f.operator && f.value)
             }
         };
@@ -212,11 +239,11 @@ export default function DataIntegration() {
             setJoins([]);
             setFilters([]);
             setMappings([
-                { target_column: 'connote', expression: '', label: 'Nomor Resi (Key)', icon: <Hash className="w-3 h-3" /> },
-                { target_column: 'full_address', expression: '', label: 'Alamat Sistem', icon: <MapPin className="w-3 h-3" /> },
-                { target_column: 'courier_id', expression: '', label: 'Courier ID / Name', icon: <User className="w-3 h-3" /> },
-                { target_column: 'latitude', expression: '', label: 'Field Lat (POD)', icon: <Navigation className="w-3 h-3" /> },
-                { target_column: 'longitude', expression: '', label: 'Field Long (POD)', icon: <Navigation className="w-3 h-3" /> },
+                { target_column: 'connote', source_columns: [''], label: 'Nomor Resi (Key)', icon: <Hash className="w-3 h-3" /> },
+                { target_column: 'full_address', source_columns: [''], label: 'Alamat Sistem', icon: <MapPin className="w-3 h-3" /> },
+                { target_column: 'courier_id', source_columns: [''], label: 'Courier ID / Name', icon: <User className="w-3 h-3" /> },
+                { target_column: 'latitude', source_columns: [''], label: 'Field Lat (POD)', icon: <Navigation className="w-3 h-3" /> },
+                { target_column: 'longitude', source_columns: [''], label: 'Field Long (POD)', icon: <Navigation className="w-3 h-3" /> },
             ]);
             setCronActive(false);
             setCronSchedule('0 0 * * *');
@@ -231,7 +258,19 @@ export default function DataIntegration() {
             setBaseTable(cfg.base_table || '');
             setJoins(cfg.joins || []);
             setFilters(cfg.filters || []);
-            setMappings(cfg.mappings || [{ target_column: 'full_address', expression: '' }]);
+
+            // Try to recover source_columns from UI metadata OR fallback to simple parsing
+            const loadedMappings = (cfg.mappings || []).map((m: any) => {
+                const existing = mappings.find(ex => ex.target_column === m.target_column);
+                return {
+                    target_column: m.target_column,
+                    source_columns: m.source_columns || [m.expression], // Fallback
+                    label: existing?.label || m.target_column,
+                    icon: existing?.icon || <Settings className="w-3 h-3" />
+                };
+            });
+            setMappings(loadedMappings);
+            
             setCronActive(cfg.cron_active || false);
             setCronSchedule(cfg.cron || '0 0 * * *');
         }
@@ -249,11 +288,15 @@ export default function DataIntegration() {
             config: {
                 base_table: baseTable,
                 joins: joins.filter(j => j.table && j.on_source && j.on_target),
-                mappings: mappings.filter(m => m.target_column && m.expression),
+                mappings: mappings.filter(m => m.target_column && m.source_columns?.some(c => c)).map(m => ({
+                    target_column: m.target_column,
+                    expression: buildExpression(m.source_columns, m.separator),
+                    source_columns: m.source_columns // Save UI state for future reload
+                })),
                 filters: filters.filter(f => f.column && f.operator && f.value),
                 cron_active: cronActive,
                 cron: cronSchedule
-            }
+            } as any
         };
         savePipelineMutation.mutate(pipeline);
     };
@@ -609,7 +652,12 @@ export default function DataIntegration() {
                                                     </div>
                                                     <div className="space-y-2">
                                                         <label className="text-sm font-bold text-foreground flex items-center gap-1">Tabel Utama <InfoTooltip info="Tabel master untuk query ini." /></label>
-                                                        <input type="text" className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground font-mono focus:ring-2 focus:ring-primary focus:outline-none" value={baseTable} onChange={e => setBaseTable(e.target.value)} placeholder="e.g. shipping_data" />
+                                                        <select className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground font-mono focus:ring-2 focus:ring-primary focus:outline-none" value={baseTable} onChange={e => setBaseTable(e.target.value)}>
+                                                            <option value="">-- Pilih Tabel --</option>
+                                                            {schema.map(t => (
+                                                                <option key={t.name} value={t.name}>{t.name}</option>
+                                                            ))}
+                                                        </select>
                                                     </div>
                                                 </div>
 
@@ -635,48 +683,166 @@ export default function DataIntegration() {
                                                     </button>
                                                 </div>
 
-                                                <div className="space-y-4">
-                                                    <label className="text-sm font-bold text-foreground flex items-center gap-1">Mapping Kolom Alamat <InfoTooltip info="Field utama: full_address" /></label>
+                                                <div className="space-y-6">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex flex-col">
+                                                            <label className="text-sm font-bold text-foreground flex items-center gap-1">Mapping Kolom Alamat</label>
+                                                            <p className="text-xs text-muted-foreground">Gabungkan 2-3 kolom dari database menjadi string alamat lengkap untuk proses geocoding.</p>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <button onClick={() => setPreviewResults(null)} className="px-3 py-1.5 border border-border rounded-lg text-xs font-medium hover:bg-muted transition-all flex items-center gap-2">
+                                                                <Play className="w-3 h-3" /> Preview Data
+                                                            </button>
+                                                            <button onClick={() => setMappings([...mappings, { target_column: 'custom_field', source_columns: [''], separator: ' ', label: 'Custom Metadata', icon: <Settings className="w-3 h-3" /> }])} className="px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-xs font-bold hover:bg-primary/20 transition-all flex items-center gap-2">
+                                                                <Plus className="w-3 h-3" /> Tambah Mapping
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
                                                     <div className="space-y-4">
                                                         {mappings.map((m, idx) => (
-                                                            <div key={idx} className={`flex flex-col gap-3 p-4 rounded-xl border transition-all group ${['connote', 'full_address'].includes(m.target_column) ? 'bg-primary/5 border-primary/20 shadow-sm' : 'bg-card border-border hover:border-primary/40'}`}>
-                                                                <div className="flex items-center justify-between">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div className="h-6 w-6 rounded-md bg-background border border-border flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
-                                                                            {m.target_column === 'connote' ? <Hash className="w-3 h-3" /> : 
-                                                                             m.target_column === 'full_address' ? <MapPin className="w-3 h-3" /> : 
-                                                                             m.target_column === 'courier_id' ? <User className="w-3 h-3" /> : 
-                                                                             ['latitude', 'longitude'].includes(m.target_column) ? <Navigation className="w-3 h-3" /> : 
-                                                                             <Settings className="w-3 h-3" />}
+                                                            <div key={idx} className="bg-card rounded-2xl border border-border shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+                                                                {/* Mapping Header */}
+                                                                <div className="bg-muted/30 px-6 py-4 border-b border-border flex items-center justify-between">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                                                                            {m.target_column === 'connote' ? <Hash className="w-4 h-4" /> : 
+                                                                             m.target_column === 'full_address' ? <MapPin className="w-4 h-4" /> : 
+                                                                             m.target_column === 'courier_id' ? <User className="w-4 h-4" /> : 
+                                                                             ['latitude', 'longitude'].includes(m.target_column) ? <Navigation className="w-4 h-4" /> : 
+                                                                             <Settings className="w-4 h-4" />}
                                                                         </div>
-                                                                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground group-hover:text-primary transition-colors">
-                                                                            {m.target_column === 'connote' ? 'Primary Key (Resi/Connote)' : 
-                                                                             m.target_column === 'full_address' ? 'System Address' : 
-                                                                             m.target_column === 'courier_id' ? 'Courier ID / Metadata' : 
-                                                                             m.target_column === 'latitude' ? 'POD Latitude' : 
-                                                                             m.target_column === 'longitude' ? 'POD Longitude' : 
-                                                                             `Metadata: ${m.target_column}`}
-                                                                        </span>
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{m.label}</span>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <input 
+                                                                                    type="text" 
+                                                                                    className="bg-transparent border-b border-dashed border-border text-sm font-bold text-foreground focus:border-primary focus:outline-none w-32" 
+                                                                                    value={m.target_column} 
+                                                                                    onChange={e => { const newM = [...mappings]; newM[idx].target_column = e.target.value; setMappings(newM); }} 
+                                                                                />
+                                                                                <span className="text-[10px] bg-muted px-2 py-0.5 rounded-full text-muted-foreground uppercase">Target</span>
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
                                                                     {!['connote', 'full_address', 'courier_id', 'latitude', 'longitude'].includes(m.target_column) && (
-                                                                        <button onClick={() => setMappings(mappings.filter((_, i) => i !== idx))} className="text-muted-foreground hover:text-destructive transition-colors p-1 hover:bg-destructive/10 rounded-full">
-                                                                            <Plus className="w-4 h-4 rotate-45" />
+                                                                        <button onClick={() => setMappings(mappings.filter((_, i) => i !== idx))} className="text-muted-foreground hover:text-destructive transition-colors p-2 hover:bg-destructive/10 rounded-full">
+                                                                            <Trash2 className="w-4 h-4" />
                                                                         </button>
                                                                     )}
                                                                 </div>
-                                                                <div className="flex gap-2 items-center">
-                                                                    <input type="text" className="w-1/3 rounded-lg border border-input bg-background px-3 py-2 text-xs font-bold focus:ring-1 focus:ring-primary outline-none" placeholder="Target Field" value={m.target_column} onChange={e => { const newM = [...mappings]; newM[idx].target_column = e.target.value; setMappings(newM); }} />
-                                                                    <input type="text" className="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-xs font-mono focus:ring-1 focus:ring-primary outline-none" placeholder="SQL Column or Expression (e.g. CONCAT(addr, ' ', city))" value={m.expression} onChange={e => { const newM = [...mappings]; newM[idx].expression = e.target.value; setMappings(newM); }} />
+
+                                                                {/* Mapping Pill UI */}
+                                                                <div className="p-6 space-y-6">
+                                                                    <div className="flex flex-wrap items-center gap-2 p-4 bg-background border border-border/50 rounded-xl min-h-[60px]">
+                                                                        {m.source_columns.map((srcCol: string, sIdx: number) => (
+                                                                            <div key={sIdx} className="flex items-center gap-2">
+                                                                                <div className="relative group/pill">
+                                                                                    <select 
+                                                                                        className="appearance-none pl-4 pr-10 py-2 bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-full text-xs font-bold text-primary focus:ring-2 focus:ring-primary focus:outline-none transition-all cursor-pointer min-w-[140px]"
+                                                                                        value={srcCol}
+                                                                                        onChange={e => { const newM = [...mappings]; newM[idx].source_columns[sIdx] = e.target.value; setMappings(newM); }}
+                                                                                    >
+                                                                                        <option value="">(pilih kolom)</option>
+                                                                                        {schema.find(t => t.name === baseTable)?.columns.map(c => (
+                                                                                            <option key={c.name} value={c.name}>{c.name}</option>
+                                                                                        ))}
+                                                                                    </select>
+                                                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-primary">
+                                                                                        <ChevronDown className="w-3 h-3" />
+                                                                                    </div>
+                                                                                    {m.source_columns.length > 1 && (
+                                                                                        <button 
+                                                                                            onClick={() => { const newM = [...mappings]; newM[idx].source_columns.splice(sIdx, 1); setMappings(newM); }}
+                                                                                            className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-white rounded-full flex items-center justify-center text-[8px] opacity-0 group-hover/pill:opacity-100 transition-opacity hover:scale-110"
+                                                                                        >
+                                                                                            <span className="rotate-45 text-sm">+</span>
+                                                                                        </button>
+                                                                                    )}
+                                                                                </div>
+                                                                                {sIdx < m.source_columns.length - 1 && (
+                                                                                    <div className="h-6 w-6 flex items-center justify-center rounded-full bg-muted text-muted-foreground font-bold text-lg">+</div>
+                                                                                )}
+                                                                            </div>
+                                                                        ))}
+                                                                        <button 
+                                                                            onClick={() => { const newM = [...mappings]; newM[idx].source_columns.push(''); setMappings(newM); }}
+                                                                            className="h-8 w-8 rounded-full border border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-all"
+                                                                        >
+                                                                            <Plus className="w-4 h-4" />
+                                                                        </button>
+                                                                    </div>
+
+                                                                    {/* Separator Selection */}
+                                                                    <div className="space-y-3">
+                                                                        <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Pemisah Antar Kolom:</label>
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            {[
+                                                                                { label: 'Koma + Spasi (, )', value: ', ' },
+                                                                                { label: 'Spasi ( )', value: ' ' },
+                                                                                { label: 'Dash (---)', value: ' - ' },
+                                                                                { label: 'Slash (/)', value: ' / ' },
+                                                                                { label: 'Pipe (|)', value: ' | ' }
+                                                                            ].map(s => (
+                                                                                <button
+                                                                                    key={s.value}
+                                                                                    onClick={() => { const newM = [...mappings]; newM[idx].separator = s.value; setMappings(newM); }}
+                                                                                    className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all ${m.separator === s.value ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20' : 'bg-transparent border-border text-muted-foreground hover:bg-muted'}`}
+                                                                                >
+                                                                                    {s.label}
+                                                                                </button>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* SQL Result Preview */}
+                                                                    <div className="p-4 bg-muted/20 border border-border/40 rounded-xl space-y-2">
+                                                                        <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase">
+                                                                            <Database className="w-3 h-3" /> Hasil Gabungan:
+                                                                        </div>
+                                                                        <div className="text-sm font-mono text-primary truncate">
+                                                                            {m.source_columns.filter((c: string) => c).join(m.separator) || '(kosong)'}
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Mini Preview Table */}
+                                                                    {previewRows.length > 0 && (
+                                                                        <div className="space-y-3 pt-4 border-t border-border/40">
+                                                                            <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase">
+                                                                                <Play className="w-3 h-3" /> Preview 5 Baris Pertama:
+                                                                            </div>
+                                                                            <div className="overflow-x-auto rounded-lg border border-border/40 bg-background/50">
+                                                                                <table className="w-full text-[10px] text-left">
+                                                                                    <thead className="bg-muted/50 text-muted-foreground font-bold border-b border-border/40 uppercase tracking-tighter">
+                                                                                        <tr>
+                                                                                            <th className="px-3 py-2 w-8 text-center bg-muted/20">#</th>
+                                                                                            {m.source_columns.map((c: string) => c && <th key={c} className="px-3 py-2">{c}</th>)}
+                                                                                            <th className="px-3 py-2 text-primary font-bold">→ Hasil Gabungan</th>
+                                                                                        </tr>
+                                                                                    </thead>
+                                                                                    <tbody className="divide-y divide-border/20">
+                                                                                        {previewRows.map((row, rIdx) => (
+                                                                                            <tr key={rIdx} className="hover:bg-primary/5 transition-colors group">
+                                                                                                <td className="px-3 py-1.5 text-center font-mono opacity-40">{rIdx + 1}</td>
+                                                                                                {m.source_columns.map((c: string) => c && (
+                                                                                                    <td key={c} className="px-3 py-1.5 text-foreground truncate max-w-[120px]" title={row[c]}>
+                                                                                                        {row[c] || '-'}
+                                                                                                    </td>
+                                                                                                ))}
+                                                                                                <td className="px-3 py-1.5 font-bold text-primary truncate max-w-[200px]">
+                                                                                                    {m.source_columns.map((c: string) => row[c]).filter((v: any) => v).join(m.separator)}
+                                                                                                </td>
+                                                                                            </tr>
+                                                                                        ))}
+                                                                                    </tbody>
+                                                                                </table>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
-                                                                {['connote', 'full_address'].includes(m.target_column) && (
-                                                                    <p className="text-[10px] text-primary/60 italic font-medium">Field wajib untuk pencocokan data operasional.</p>
-                                                                )}
                                                             </div>
                                                         ))}
                                                     </div>
-                                                    <button onClick={() => setMappings([...mappings, { target_column: 'custom_field', expression: '', label: 'Custom Metadata', icon: <Settings className="w-3 h-3" /> }])} className="mt-4 w-full py-2 border border-dashed border-border rounded-lg text-xs font-medium text-muted-foreground hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2">
-                                                        <Plus className="w-3 h-3" /> Tambah Metadata Lainnya
-                                                    </button>
                                                 </div>
 
                                                 <div className="pt-6 border-t border-border/40">
