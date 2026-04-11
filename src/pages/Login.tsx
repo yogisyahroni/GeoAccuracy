@@ -21,21 +21,10 @@ type LoginForm = z.infer<typeof loginSchema>;
 // ─── Shared field styles ───────────────────────────────────────────────────────
 
 const fieldBase =
-    'w-full px-4 py-3 rounded-xl text-sm border outline-none transition-all duration-200 placeholder:text-muted-foreground/50';
+    'w-full px-4 py-3 rounded-xl text-sm border outline-none transition-all duration-200 placeholder:text-muted-foreground/50 bg-[hsl(var(--surface-2,var(--muted)))] text-[hsl(var(--foreground))] border-[hsl(var(--border))] focus:border-[hsl(var(--primary))] focus:ring-4 focus:ring-[hsl(var(--primary)/0.12)]';
 
-const fieldStyle = (hasError: boolean) => ({
-    background: 'hsl(var(--surface-2, var(--muted)))',
-    borderColor: hasError ? 'hsl(var(--destructive))' : 'hsl(var(--border))',
-    color: 'hsl(var(--foreground))',
-    boxShadow: 'none',
-});
-
-const fieldFocus = (hasError: boolean) => ({
-    borderColor: hasError ? 'hsl(var(--destructive))' : 'hsl(var(--primary))',
-    boxShadow: hasError
-        ? '0 0 0 3px hsl(var(--destructive) / 0.12)'
-        : '0 0 0 3px hsl(var(--primary) / 0.12)',
-});
+const fieldErrorClass =
+    'border-[hsl(var(--destructive))] focus:border-[hsl(var(--destructive))] focus:ring-[hsl(var(--destructive)/0.12)]';
 
 // ─── Animation variants ────────────────────────────────────────────────────────
 
@@ -195,10 +184,7 @@ const Login = () => {
                                 autoComplete="email"
                                 placeholder="nama@perusahaan.com"
                                 {...register('email')}
-                                className={fieldBase}
-                                style={fieldStyle(!!errors.email)}
-                                onFocus={(e) => Object.assign(e.currentTarget.style, fieldFocus(!!errors.email))}
-                                onBlur={(e) => Object.assign(e.currentTarget.style, fieldStyle(!!errors.email))}
+                                className={`${fieldBase} ${errors.email ? fieldErrorClass : ''}`}
                             />
                             {errors.email && (
                                 <motion.p
@@ -228,10 +214,7 @@ const Login = () => {
                                     autoComplete="current-password"
                                     placeholder="••••••••"
                                     {...register('password')}
-                                    className={`${fieldBase} pr-11`}
-                                    style={fieldStyle(!!errors.password)}
-                                    onFocus={(e) => Object.assign(e.currentTarget.style, fieldFocus(!!errors.password))}
-                                    onBlur={(e) => Object.assign(e.currentTarget.style, fieldStyle(!!errors.password))}
+                                    className={`${fieldBase} pr-11 ${errors.password ? fieldErrorClass : ''}`}
                                 />
                                 <button
                                     type="button"
