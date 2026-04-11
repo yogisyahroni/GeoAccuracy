@@ -109,9 +109,10 @@ func SetupRouter(
 				editorGroup.POST("/batches/:id/system-data", batchHandler.UploadSystemData)
 				editorGroup.POST("/batches/:id/field-data", batchHandler.UploadFieldData)
 				editorGroup.POST("/batches/:id/process", batchHandler.ProcessBatch)
-
-				editorGroup.GET("/ws/batches/:id", wsHandler.HandleBatchWS)
 			}
+
+			// Public WebSocket upgrade for batches (auth checked inside handler via query param/cookie)
+			api.GET("/ws/batches/:id", wsHandler.HandleBatchWS)
 
 			// ── Admin Only Access (Global Settings) ──
 			adminGroup := protected.Group("/")

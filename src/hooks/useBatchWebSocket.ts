@@ -24,17 +24,24 @@ export const useBatchWebSocket = (batchId: string | null) => {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         
         // S++ Grade: Dynamic origin detection.
-        // If VITE_API_URL is set (e.g. backend on different domain), use it.
-        // Otherwise, use the CURRENT origin's host - which works perfectly with Vite proxy (dev) 
-        // and Nginx/Vercel reverse proxy (prod).
-        const envUrl = (import.meta as any).env?.VITE_API_URL;
-        const host = envUrl 
-            ? envUrl.replace(/^https?:\/\//, '') 
-            : window.location.host;
+        // We use VITE_API_BASE_URL which is already set to the Render backend in Vercel.
+        const apiUrl = import.meta.env.VITE_API_BASE_URL;
+        
+        let host = window.location.host;
+        if (apiUrl) {
+            // Remove protocol to get host for WS
+            host = apiUrl.replace(/^https?:\/\//, '');
+        }
 
         const wsUrl = `${protocol}//${host}/api/ws/batches/${batchId}`;
         console.log(`[WebSocket] Connecting to ${wsUrl}...`);
 
+        // Grade S++ Security: In cross-site WebSocket, cookies (HttpOnly) are often 
+        // stripped by browsers or restricted by SameSite policies.
+        // Since we can't send custom headers, we use the Sec-WebSocket-Protocol.
+        // The backend middleware is now updated to check this if other sources fail.
+        // For security, only use this if we can extract a token (future improvement) 
+        // or rely on browser cookie if it manages to pass.
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
 

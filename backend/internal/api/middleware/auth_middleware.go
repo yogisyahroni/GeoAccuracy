@@ -31,6 +31,17 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 		}
 
 		if tokenString == "" {
+			// 3. Fallback to Sec-WebSocket-Protocol (Secured for WS Handshakes)
+			// Browser WS API doesn't allow custom headers, so we often pass token here.
+			wsProtocol := c.GetHeader("Sec-WebSocket-Protocol")
+			if wsProtocol != "" {
+				// Protocol can be "token, other-sub"
+				parts := strings.Split(wsProtocol, ",")
+				tokenString = strings.TrimSpace(parts[0])
+			}
+		}
+
+		if tokenString == "" {
 			// Internal debug log (visible in Render logs)
 			log.Printf("[AUTH] Missing token from all sources (Cookie: %v, Header: %v)", 
 				c.Request.Header.Get("Cookie") != "", 
