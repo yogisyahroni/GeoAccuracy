@@ -210,7 +210,11 @@ func (s *etlService) PreviewData(ctx context.Context, pipeline *domain.Transform
 	// Force limit for preview
 	pConfig.Limit = 100
 
-	ds, err := s.dsRepo.GetByID(ctx, pipeline.DataSourceID, pipeline.UserID)
+	if pipeline.DataSourceID == nil {
+		return nil, errors.New("pipeline has no data source assigned")
+	}
+
+	ds, err := s.dsRepo.GetByID(ctx, *pipeline.DataSourceID, pipeline.UserID)
 	if err != nil || ds == nil {
 		return nil, errors.New("datasource not found or unauthorized")
 	}
@@ -289,7 +293,11 @@ func (s *etlService) ExecutePipeline(ctx context.Context, pipeline *domain.Trans
 		return nil, fmt.Errorf("invalid pipeline config json: %w", err)
 	}
 
-	ds, err := s.dsRepo.GetByID(ctx, pipeline.DataSourceID, pipeline.UserID)
+	if pipeline.DataSourceID == nil {
+		return nil, errors.New("pipeline has no data source assigned")
+	}
+
+	ds, err := s.dsRepo.GetByID(ctx, *pipeline.DataSourceID, pipeline.UserID)
 	if err != nil || ds == nil {
 		return nil, errors.New("datasource not found or unauthorized")
 	}
@@ -449,7 +457,11 @@ func (s *etlService) ExecutePipelineStream(ctx context.Context, pipeline *domain
 		return fmt.Errorf("invalid pipeline config json: %w", err)
 	}
 
-	ds, err := s.dsRepo.GetByID(ctx, pipeline.DataSourceID, pipeline.UserID)
+	if pipeline.DataSourceID == nil {
+		return errors.New("pipeline has no data source assigned")
+	}
+
+	ds, err := s.dsRepo.GetByID(ctx, *pipeline.DataSourceID, pipeline.UserID)
 	if err != nil || ds == nil {
 		return errors.New("datasource not found or unauthorized")
 	}
