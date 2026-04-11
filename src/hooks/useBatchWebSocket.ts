@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-export interface WebSocketMessage {
-    batch_id: string;
-    type: 'progress' | 'completed' | 'error' | 'auth_ok';
-    payload: unknown;
-}
+export type WebSocketMessage =
+    | { batch_id: string; type: 'progress'; payload: { processed: number; total: number } }
+    | { batch_id: string; type: 'completed'; payload: unknown }
+    | { batch_id: string; type: 'error'; payload: unknown }
+    | { batch_id: string; type: 'auth_ok'; payload: unknown };
 
 export interface BatchProgress {
     processed: number;
