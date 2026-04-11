@@ -22,12 +22,16 @@ export const useBatchWebSocket = (batchId: string | null) => {
         if (!batchId) return;
 
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = (import.meta as any).env?.VITE_API_URL
-            ? (import.meta as any).env.VITE_API_URL.replace(/^https?:\/\//, '')
-            : 'localhost:8080';
+        
+        // S++ Grade: Dynamic origin detection.
+        // If VITE_API_URL is set (e.g. backend on different domain), use it.
+        // Otherwise, use the CURRENT origin's host - which works perfectly with Vite proxy (dev) 
+        // and Nginx/Vercel reverse proxy (prod).
+        const envUrl = (import.meta as any).env?.VITE_API_URL;
+        const host = envUrl 
+            ? envUrl.replace(/^https?:\/\//, '') 
+            : window.location.host;
 
-        // FIX BUG-11: Token is NO LONGER included in the URL query string.
-        // And now (Grade S++), we rely on HttpOnly cookies sent automatically.
         const wsUrl = `${protocol}//${host}/api/ws/batches/${batchId}`;
         console.log(`[WebSocket] Connecting to ${wsUrl}...`);
 
