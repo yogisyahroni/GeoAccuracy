@@ -23,9 +23,8 @@ describe('Dashboard Component (Analytics)', () => {
     beforeEach(() => {
         vi.clearAllMocks();
 
-        // Mock default User
         useAuthStore.setState({
-            user: { id: 1, name: 'Admin', email: 'admin@t.com', role: 'admin', tenant_id: 1 },
+            user: { id: 1, name: 'Admin', email: 'admin@t.com', role: 'admin' },
             isAuthenticated: true,
         });
 
@@ -51,7 +50,7 @@ describe('Dashboard Component (Analytics)', () => {
 
     it('renders correctly for Observer role and hides DatabaseConnector', async () => {
         useAuthStore.setState({
-            user: { id: 99, name: 'Obs', email: 'obs@t.com', role: 'observer', tenant_id: 1 },
+            user: { id: 99, name: 'Obs', email: 'obs@t.com', role: 'observer' },
         });
 
         renderDashboard();
