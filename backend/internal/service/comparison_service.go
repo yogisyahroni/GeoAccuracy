@@ -61,9 +61,12 @@ func (s *comparisonService) ValidateSingle(ctx context.Context, userID int, item
 	if err != nil {
 		return domain.ValidationResult{
 			ID:            item.ID,
+			Connote:       item.Connote,
 			SystemAddress: item.SystemAddress,
+			CourierID:     item.CourierID,
 			FieldLat:      item.FieldLat,
 			FieldLng:      item.FieldLng,
+			Metadata:      item.Metadata,
 			Error:         err.Error(),
 		}
 	}
@@ -73,7 +76,9 @@ func (s *comparisonService) ValidateSingle(ctx context.Context, userID int, item
 
 	return domain.ValidationResult{
 		ID:            item.ID,
+		Connote:       item.Connote,
 		SystemAddress: item.SystemAddress,
+		CourierID:     item.CourierID,
 		GeoLat:        geoRes.Lat,
 		GeoLng:        geoRes.Lng,
 		FieldLat:      item.FieldLat,
@@ -81,6 +86,7 @@ func (s *comparisonService) ValidateSingle(ctx context.Context, userID int, item
 		DistanceKm:    distance,
 		AccuracyLevel: accuracy,
 		Provider:      geoRes.Provider,
+		Metadata:      item.Metadata,
 	}
 }
 

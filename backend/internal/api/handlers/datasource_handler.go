@@ -222,11 +222,17 @@ func (h *DataSourceHandler) RunPipeline(c *gin.Context) {
 				bi := domain.BatchItem{
 					ID:            uuid.New(),
 					BatchID:       batchID,
-					Connote:       item.ID,
+					Connote:       item.Connote,
+					CourierID:     item.CourierID,
+					RecipientName: "", // Optional, could be mapped or extracted from metadata
 					SystemAddress: item.SystemAddress,
 					GeocodeStatus: geoStatus,
 					AccuracyLevel: res.AccuracyLevel,
 					Error:         res.Error,
+				}
+				// Support Courier Name from metadata if present
+				if cn, ok := item.Metadata["courier_name"].(string); ok {
+					bi.RecipientName = cn // Temporary reuse of RecipientName or add specific field
 				}
 				if res.GeoLat != 0 {
 					lat, lng := res.GeoLat, res.GeoLng

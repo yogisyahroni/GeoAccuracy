@@ -38,7 +38,7 @@ type JoinConfig struct {
 }
 
 type ColumnMapping struct {
-	TargetColumn string `json:"target_column"` // "id", "full_address", "latitude", "longitude"
+	TargetColumn string `json:"target_column"` // "connote", "id", "full_address", "courier_id", "latitude", "longitude", or custom metadata
 	Expression   string `json:"expression"`    // "CONCAT(t1.address1, ' ', t1.address2)" or just "t1.lat"
 }
 
@@ -383,11 +383,41 @@ func (s *etlService) ExecutePipeline(ctx context.Context, pipeline *domain.Trans
 			}
 		}
 
+		// Helper to safely extract interface{} for metadata
+		getInterface := func(col string) interface{} {
+			idx, ok := colMap[col]
+			if !ok {
+				return nil
+			}
+			val := columnPointers[idx].(*interface{})
+			if val == nil || *val == nil {
+				return nil
+			}
+			if b, ok := (*val).([]byte); ok {
+				return string(b)
+			}
+			return *val
+		}
+
 		item := domain.ValidationRequestItem{
 			ID:            getString("id"),
+			Connote:       getString("connote"),
 			SystemAddress: getString("full_address"),
+			CourierID:     getString("courier_id"),
 			FieldLat:      getFloat("latitude"),
 			FieldLng:      getFloat("longitude"),
+			Metadata:      make(map[string]interface{}),
+		}
+
+		// Capture any other columns as dynamic metadata
+		standardCols := map[string]bool{
+			"id": true, "connote": true, "full_address": true,
+			"courier_id": true, "latitude": true, "longitude": true,
+		}
+		for _, col := range columns {
+			if !standardCols[col] {
+				item.Metadata[col] = getInterface(col)
+			}
 		}
 
 		items = append(items, item)
@@ -507,11 +537,40 @@ func (s *etlService) ExecutePipelineStream(ctx context.Context, pipeline *domain
 			}
 		}
 
+		getInterface := func(col string) interface{} {
+			idx, ok := colMap[col]
+			if !ok {
+				return nil
+			}
+			val := columnPointers[idx].(*interface{})
+			if val == nil || *val == nil {
+				return nil
+			}
+			if b, ok := (*val).([]byte); ok {
+				return string(b)
+			}
+			return *val
+		}
+
 		item := domain.ValidationRequestItem{
 			ID:            getString("id"),
+			Connote:       getString("connote"),
 			SystemAddress: getString("full_address"),
+			CourierID:     getString("courier_id"),
 			FieldLat:      getFloat("latitude"),
 			FieldLng:      getFloat("longitude"),
+			Metadata:      make(map[string]interface{}),
+		}
+
+		// Capture any other columns as dynamic metadata
+		standardCols := map[string]bool{
+			"id": true, "connote": true, "full_address": true,
+			"courier_id": true, "latitude": true, "longitude": true,
+		}
+		for _, col := range columns {
+			if !standardCols[col] {
+				item.Metadata[col] = getInterface(col)
+			}
 		}
 
 		batch = append(batch, item)
