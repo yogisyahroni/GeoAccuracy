@@ -104,27 +104,39 @@ export async function request<TResponse>(
         if (!refreshPromise) {
             refreshPromise = (async () => {
                 try {
-                    await fetch(`${API_BASE_URL}/api/auth/refresh`, { 
+                    const refreshRes = await fetch(`${API_BASE_URL}/api/auth/refresh`, { 
                         method: 'POST', 
                         credentials: 'include' 
                     });
+                    
+                    if (!refreshRes.ok) {
+                        throw new Error('Refresh failed');
+                    }
+                } catch (error) {
+                    // If refresh fails, we must log out
+                    clearStoredAuth();
+                    throw error;
                 } finally {
                     refreshPromise = null;
                 }
             })();
         }
 
-        await refreshPromise;
-        // Retry original request ONCE after refresh attempt
-        const retryResponse = await fetch(`${API_BASE_URL}${path}`, fetchOptions);
-        if (retryResponse.status === 401) {
+        try {
+            await refreshPromise;
+            // Retry original request ONCE after refresh attempt
+            const retryResponse = await fetch(`${API_BASE_URL}${path}`, fetchOptions);
+            if (retryResponse.status === 401) {
+                throw new Error('Retried request still unauthorized');
+            }
+            response = retryResponse;
+        } catch (error) {
             clearStoredAuth();
             if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
                 window.location.href = '/login';
             }
             throw new ApiError(401, 'UNAUTHENTICATED', 'Session expired. Please log in again.');
         }
-        response = retryResponse;
     }
 
     // Parse JSON body

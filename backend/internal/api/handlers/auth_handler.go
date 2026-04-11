@@ -99,8 +99,16 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 func (h *AuthHandler) setAuthCookies(c *gin.Context, accessToken, refreshToken string) {
 	secure := h.cfg.AppEnv == "production"
 	
+	// Grade S++ Cookie Strategy:
+	// If in production (Vercel + Render), we need SameSite=None for cross-site cookies.
+	// Otherwise, SameSite=Lax is sufficient for same-site (localhost) dev.
+	sameSite := http.SameSiteLaxMode
+	if secure {
+		sameSite = http.SameSiteNoneMode
+	}
+	
 	// Access Token: 15 min
-	c.SetSameSite(http.SameSiteStrictMode)
+	c.SetSameSite(sameSite)
 	c.SetCookie("access_token", accessToken, 15*60, "/", "", secure, true)
 	
 	// Refresh Token: 7 days
@@ -109,7 +117,11 @@ func (h *AuthHandler) setAuthCookies(c *gin.Context, accessToken, refreshToken s
 
 func (h *AuthHandler) clearAuthCookies(c *gin.Context) {
 	secure := h.cfg.AppEnv == "production"
-	c.SetSameSite(http.SameSiteStrictMode)
+	sameSite := http.SameSiteLaxMode
+	if secure {
+		sameSite = http.SameSiteNoneMode
+	}
+	c.SetSameSite(sameSite)
 	c.SetCookie("access_token", "", -1, "/", "", secure, true)
 	c.SetCookie("refresh_token", "", -1, "/api/auth/refresh", "", secure, true)
 }

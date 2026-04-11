@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
@@ -30,12 +31,17 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 		}
 
 		if tokenString == "" {
+			// Internal debug log (visible in Render logs)
+			log.Printf("[AUTH] Missing token from all sources (Cookie: %v, Header: %v)", 
+				c.Request.Header.Get("Cookie") != "", 
+				c.GetHeader("Authorization") != "")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
 			return
 		}
 
 		claims, err := utils.ParseToken(tokenString, cfg)
 		if err != nil {
+			log.Printf("[AUTH] Invalid token: %v", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			return
 		}
