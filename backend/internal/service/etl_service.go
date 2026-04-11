@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 
 	"geoaccuracy-backend/config"
 	"geoaccuracy-backend/internal/domain"
@@ -44,10 +45,10 @@ type ColumnMapping struct {
 
 // MultiSourceConfig is the new flexible configuration for orchestrating multiple databases
 type MultiSourceConfig struct {
-	Sources    []SourceConfig   `json:"sources"`
-	JoinKey    string           `json:"join_key"` // The common column across all sources, e.g., "connote"
-	Mappings   []ColumnMapping  `json:"mappings"`
-	Limit      int              `json:"limit,omitempty"`
+	Sources  []SourceConfig  `json:"sources"`
+	JoinKey  string          `json:"join_key"` // The common column across all sources, e.g., "connote"
+	Mappings []ColumnMapping `json:"mappings"`
+	Limit    int             `json:"limit,omitempty"`
 }
 
 type SourceConfig struct {
@@ -202,12 +203,19 @@ func (s *etlService) buildDSN(ds *domain.DataSource) string {
 
 // PreviewData tests the pipeline configuration against the target database and returns a small set of mapped records.
 func (s *etlService) PreviewData(ctx context.Context, pipeline *domain.TransformationPipeline) ([]map[string]interface{}, error) {
+	// Attempt to unmarshal as MultiSourceConfig first
+	var mConfig MultiSourceConfig
+	if err := json.Unmarshal(pipeline.Config, &mConfig); err == nil && len(mConfig.Sources) > 0 {
+		mConfig.Limit = 100
+		return s.executeMultiSourcePreview(ctx, pipeline.UserID, &mConfig)
+	}
+
+	// Fallback to standard PipelineConfig
 	var pConfig PipelineConfig
 	if err := json.Unmarshal(pipeline.Config, &pConfig); err != nil {
 		return nil, fmt.Errorf("invalid pipeline config json: %w", err)
 	}
 
-	// Force limit for preview
 	pConfig.Limit = 100
 
 	if pipeline.DataSourceID == nil {
@@ -219,20 +227,17 @@ func (s *etlService) PreviewData(ctx context.Context, pipeline *domain.Transform
 		return nil, errors.New("datasource not found or unauthorized")
 	}
 
-	// Decrypt password
 	decryptedPassword, err := crypto.Decrypt(ds.Password, s.cfg.AESEncryptionKey)
 	if err != nil {
 		return nil, errors.New("failed to decrypt source credentials")
 	}
 	ds.Password = decryptedPassword
 
-	// Build the SQL Pushdown query
 	sqlQuery, err := s.BuildSQL(&pConfig, ds.Provider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build SQL: %w", err)
 	}
 
-	// Open Connection
 	driver := ds.Provider
 	if driver == "postgresql" {
 		driver = "postgres"
@@ -244,36 +249,30 @@ func (s *etlService) PreviewData(ctx context.Context, pipeline *domain.Transform
 	}
 	defer db.Close()
 
-	// Execute Transform natively on the database Engine
 	rows, err := db.QueryContext(ctx, sqlQuery)
 	if err != nil {
 		return nil, fmt.Errorf("transform execution failed: %w", err)
 	}
 	defer rows.Close()
 
-	// Parse generic rows
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, err
 	}
 
 	var results []map[string]interface{}
-
 	for rows.Next() {
 		columnsData := make([]interface{}, len(columns))
 		columnPointers := make([]interface{}, len(columns))
 		for i := range columnsData {
 			columnPointers[i] = &columnsData[i]
 		}
-
 		if err := rows.Scan(columnPointers...); err != nil {
 			return nil, err
 		}
-
 		rowData := make(map[string]interface{})
 		for i, colName := range columns {
 			val := columnPointers[i].(*interface{})
-			// Convert []byte to string for generic JSON formatting if necessary
 			if b, ok := (*val).([]byte); ok {
 				rowData[colName] = string(b)
 			} else {
@@ -282,12 +281,18 @@ func (s *etlService) PreviewData(ctx context.Context, pipeline *domain.Transform
 		}
 		results = append(results, rowData)
 	}
-
 	return results, nil
 }
 
 // ExecutePipeline fully runs the ETL extraction and maps strictly into ValidationRequestItems
 func (s *etlService) ExecutePipeline(ctx context.Context, pipeline *domain.TransformationPipeline) ([]domain.ValidationRequestItem, error) {
+	// Handle MultiSource
+	var mConfig MultiSourceConfig
+	if err := json.Unmarshal(pipeline.Config, &mConfig); err == nil && len(mConfig.Sources) > 0 {
+		return s.executeMultiSourceFull(ctx, pipeline.UserID, &mConfig)
+	}
+
+	// Standard extraction
 	var pConfig PipelineConfig
 	if err := json.Unmarshal(pipeline.Config, &pConfig); err != nil {
 		return nil, fmt.Errorf("invalid pipeline config json: %w", err)
@@ -335,65 +340,41 @@ func (s *etlService) ExecutePipeline(ctx context.Context, pipeline *domain.Trans
 		return nil, err
 	}
 
-	// Map column names to their index
 	colMap := make(map[string]int)
 	for i, col := range columns {
 		colMap[col] = i
 	}
 
 	var items []domain.ValidationRequestItem
-
 	for rows.Next() {
-		// Scan everything into interface{}
 		columnsData := make([]interface{}, len(columns))
 		columnPointers := make([]interface{}, len(columns))
 		for i := range columnsData {
 			columnPointers[i] = &columnsData[i]
 		}
-
 		if err := rows.Scan(columnPointers...); err != nil {
 			return nil, err
 		}
 
-		// Helper to safely extract string
 		getString := func(col string) string {
 			idx, ok := colMap[col]
-			if !ok {
-				return ""
-			}
+			if !ok { return "" }
 			val := columnPointers[idx].(*interface{})
-			if val == nil || *val == nil {
-				return ""
-			}
-			if b, ok := (*val).([]byte); ok {
-				return string(b)
-			}
+			if val == nil || *val == nil { return "" }
+			if b, ok := (*val).([]byte); ok { return string(b) }
 			return fmt.Sprintf("%v", *val)
 		}
-
-		// Helper to safely extract float64
 		getFloat := func(col string) float64 {
 			idx, ok := colMap[col]
-			if !ok {
-				return 0.0
-			}
+			if !ok { return 0.0 }
 			val := columnPointers[idx].(*interface{})
-			if val == nil || *val == nil {
-				return 0.0
-			}
-
-			// Handle various numeric return types from drivers
+			if val == nil || *val == nil { return 0.0 }
 			switch v := (*val).(type) {
-			case float64:
-				return v
-			case float32:
-				return float64(v)
-			case int64:
-				return float64(v)
-			case int32:
-				return float64(v)
-			case int:
-				return float64(v)
+			case float64: return v
+			case float32: return float64(v)
+			case int64: return float64(v)
+			case int32: return float64(v)
+			case int: return float64(v)
 			case []byte:
 				var f float64
 				fmt.Sscanf(string(v), "%f", &f)
@@ -402,24 +383,15 @@ func (s *etlService) ExecutePipeline(ctx context.Context, pipeline *domain.Trans
 				var f float64
 				fmt.Sscanf(v, "%f", &f)
 				return f
-			default:
-				return 0.0
+			default: return 0.0
 			}
 		}
-
-		// Helper to safely extract interface{} for metadata
 		getInterface := func(col string) interface{} {
 			idx, ok := colMap[col]
-			if !ok {
-				return nil
-			}
+			if !ok { return nil }
 			val := columnPointers[idx].(*interface{})
-			if val == nil || *val == nil {
-				return nil
-			}
-			if b, ok := (*val).([]byte); ok {
-				return string(b)
-			}
+			if val == nil || *val == nil { return nil }
+			if b, ok := (*val).([]byte); ok { return string(b) }
 			return *val
 		}
 
@@ -432,26 +404,40 @@ func (s *etlService) ExecutePipeline(ctx context.Context, pipeline *domain.Trans
 			FieldLng:      getFloat("longitude"),
 			Metadata:      make(map[string]interface{}),
 		}
-
-		// Capture any other columns as dynamic metadata
-		standardCols := map[string]bool{
-			"id": true, "connote": true, "full_address": true,
-			"courier_id": true, "latitude": true, "longitude": true,
-		}
+		standardCols := map[string]bool{"id": true, "connote": true, "full_address": true, "courier_id": true, "latitude": true, "longitude": true}
 		for _, col := range columns {
 			if !standardCols[col] {
 				item.Metadata[col] = getInterface(col)
 			}
 		}
-
 		items = append(items, item)
 	}
-
 	return items, nil
 }
 
 // ExecutePipelineStream runs the ETL extraction and streams the results in chunks to prevent OOM
 func (s *etlService) ExecutePipelineStream(ctx context.Context, pipeline *domain.TransformationPipeline, batchSize int, processBatch func([]domain.ValidationRequestItem) error) error {
+	// Handle MultiSource
+	var mConfig MultiSourceConfig
+	if err := json.Unmarshal(pipeline.Config, &mConfig); err == nil && len(mConfig.Sources) > 0 {
+		items, err := s.executeMultiSourceFull(ctx, pipeline.UserID, &mConfig)
+		if err != nil {
+			return err
+		}
+		// Stream in batches
+		for i := 0; i < len(items); i += batchSize {
+			end := i + batchSize
+			if end > len(items) {
+				end = len(items)
+			}
+			if err := processBatch(items[i:end]); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	// Standard stream extraction
 	var pConfig PipelineConfig
 	if err := json.Unmarshal(pipeline.Config, &pConfig); err != nil {
 		return fmt.Errorf("invalid pipeline config json: %w", err)
@@ -505,53 +491,35 @@ func (s *etlService) ExecutePipelineStream(ctx context.Context, pipeline *domain
 	}
 
 	var batch []domain.ValidationRequestItem
-
 	for rows.Next() {
 		columnsData := make([]interface{}, len(columns))
 		columnPointers := make([]interface{}, len(columns))
 		for i := range columnsData {
 			columnPointers[i] = &columnsData[i]
 		}
-
 		if err := rows.Scan(columnPointers...); err != nil {
 			return err
 		}
 
 		getString := func(col string) string {
 			idx, ok := colMap[col]
-			if !ok {
-				return ""
-			}
+			if !ok { return "" }
 			val := columnPointers[idx].(*interface{})
-			if val == nil || *val == nil {
-				return ""
-			}
-			if b, ok := (*val).([]byte); ok {
-				return string(b)
-			}
+			if val == nil || *val == nil { return "" }
+			if b, ok := (*val).([]byte); ok { return string(b) }
 			return fmt.Sprintf("%v", *val)
 		}
-
 		getFloat := func(col string) float64 {
 			idx, ok := colMap[col]
-			if !ok {
-				return 0.0
-			}
+			if !ok { return 0.0 }
 			val := columnPointers[idx].(*interface{})
-			if val == nil || *val == nil {
-				return 0.0
-			}
+			if val == nil || *val == nil { return 0.0 }
 			switch v := (*val).(type) {
-			case float64:
-				return v
-			case float32:
-				return float64(v)
-			case int64:
-				return float64(v)
-			case int32:
-				return float64(v)
-			case int:
-				return float64(v)
+			case float64: return v
+			case float32: return float64(v)
+			case int64: return float64(v)
+			case int32: return float64(v)
+			case int: return float64(v)
 			case []byte:
 				var f float64
 				fmt.Sscanf(string(v), "%f", &f)
@@ -560,23 +528,15 @@ func (s *etlService) ExecutePipelineStream(ctx context.Context, pipeline *domain
 				var f float64
 				fmt.Sscanf(v, "%f", &f)
 				return f
-			default:
-				return 0.0
+			default: return 0.0
 			}
 		}
-
 		getInterface := func(col string) interface{} {
 			idx, ok := colMap[col]
-			if !ok {
-				return nil
-			}
+			if !ok { return nil }
 			val := columnPointers[idx].(*interface{})
-			if val == nil || *val == nil {
-				return nil
-			}
-			if b, ok := (*val).([]byte); ok {
-				return string(b)
-			}
+			if val == nil || *val == nil { return nil }
+			if b, ok := (*val).([]byte); ok { return string(b) }
 			return *val
 		}
 
@@ -589,18 +549,12 @@ func (s *etlService) ExecutePipelineStream(ctx context.Context, pipeline *domain
 			FieldLng:      getFloat("longitude"),
 			Metadata:      make(map[string]interface{}),
 		}
-
-		// Capture any other columns as dynamic metadata
-		standardCols := map[string]bool{
-			"id": true, "connote": true, "full_address": true,
-			"courier_id": true, "latitude": true, "longitude": true,
-		}
+		standardCols := map[string]bool{"id": true, "connote": true, "full_address": true, "courier_id": true, "latitude": true, "longitude": true}
 		for _, col := range columns {
 			if !standardCols[col] {
 				item.Metadata[col] = getInterface(col)
 			}
 		}
-
 		batch = append(batch, item)
 		if len(batch) >= batchSize {
 			if err := processBatch(batch); err != nil {
@@ -609,12 +563,223 @@ func (s *etlService) ExecutePipelineStream(ctx context.Context, pipeline *domain
 			batch = batch[:0]
 		}
 	}
-
 	if len(batch) > 0 {
 		if err := processBatch(batch); err != nil {
 			return err
 		}
 	}
-
 	return nil
+}
+
+// executeMultiSourcePreview performs the virtual hash join for a small set of data
+func (s *etlService) executeMultiSourcePreview(ctx context.Context, userID int64, config *MultiSourceConfig) ([]map[string]interface{}, error) {
+	joinedData, err := s.fetchAndJoin(ctx, userID, config)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []map[string]interface{}
+	for _, row := range joinedData {
+		mappedRow := make(map[string]interface{})
+		// Direct mapping for preview
+		for k, v := range row {
+			mappedRow[k] = v
+		}
+		results = append(results, mappedRow)
+		if len(results) >= config.Limit && config.Limit > 0 {
+			break
+		}
+	}
+	return results, nil
+}
+
+// executeMultiSourceFull performs the virtual hash join and returns full validation items
+func (s *etlService) executeMultiSourceFull(ctx context.Context, userID int64, config *MultiSourceConfig) ([]domain.ValidationRequestItem, error) {
+	joinedData, err := s.fetchAndJoin(ctx, userID, config)
+	if err != nil {
+		return nil, err
+	}
+
+	var items []domain.ValidationRequestItem
+	for _, row := range joinedData {
+		// Helper to safely extract from combined row using aliases
+		// Mapping e.g. "connote" -> "erp.connote"
+		getValue := func(expression string) interface{} {
+			// expression is usually like "alias.column"
+			return row[expression]
+		}
+
+		getString := func(expr string) string {
+			v := getValue(expr)
+			if v == nil { return "" }
+			return fmt.Sprintf("%v", v)
+		}
+
+		getFloat := func(expr string) float64 {
+			v := getValue(expr)
+			if v == nil { return 0.0 }
+			switch val := v.(type) {
+			case float64: return val
+			case float32: return float64(val)
+			case int64: return float64(val)
+			case int: return float64(val)
+			case string:
+				var f float64
+				fmt.Sscanf(val, "%f", &f)
+				return f
+			default: return 0.0
+			}
+		}
+
+		item := domain.ValidationRequestItem{
+			Metadata: make(map[string]interface{}),
+		}
+
+		for _, m := range config.Mappings {
+			switch m.TargetColumn {
+			case "id": item.ID = getString(m.Expression)
+			case "connote": item.Connote = getString(m.Expression)
+			case "full_address": item.SystemAddress = getString(m.Expression)
+			case "courier_id": item.CourierID = getString(m.Expression)
+			case "latitude": item.FieldLat = getFloat(m.Expression)
+			case "longitude": item.FieldLng = getFloat(m.Expression)
+			default:
+				item.Metadata[m.TargetColumn] = getValue(m.Expression)
+			}
+		}
+		items = append(items, item)
+	}
+
+	return items, nil
+}
+
+func (s *etlService) fetchAndJoin(ctx context.Context, userID int64, config *MultiSourceConfig) (map[string]map[string]interface{}, error) {
+	if config.JoinKey == "" {
+		return nil, errors.New("join_key is required for multi-source pipelines")
+	}
+
+	// Result map: join_key_value -> combined_row
+	results := make(map[string]map[string]interface{})
+	var resultsMu sync.Mutex
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(config.Sources))
+
+	for _, src := range config.Sources {
+		wg.Add(1)
+		go func(sc SourceConfig) {
+			defer wg.Done()
+
+			ds, err := s.dsRepo.GetByID(ctx, sc.DataSourceID, userID)
+			if err != nil || ds == nil {
+				errChan <- fmt.Errorf("source %s not found", sc.Alias)
+				return
+			}
+
+			decryptedPassword, err := crypto.Decrypt(ds.Password, s.cfg.AESEncryptionKey)
+			if err != nil {
+				errChan <- fmt.Errorf("decryption failed for source %s", sc.Alias)
+				return
+			}
+			ds.Password = decryptedPassword
+
+			// Build a simple select all for the source
+			// We need at least the join key.
+			// Ideally the user specifies what columns to pull, but for now we pull based on alias naming
+			// SELECT * FROM base_table
+			if err := sanitizeIdentifier(sc.BaseTable); err != nil {
+				errChan <- err
+				return
+			}
+			
+			// Build query for this source
+			query := fmt.Sprintf("SELECT * FROM %s", sc.BaseTable)
+			// Apply joins if any
+			if len(sc.Joins) > 0 {
+				var joinStrs []string
+				for _, j := range sc.Joins {
+					sanitizeIdentifier(j.Table)
+					sanitizeIdentifier(j.OnSource)
+					sanitizeIdentifier(j.OnTarget)
+					joinType := "LEFT JOIN"
+					if strings.ToUpper(j.Type) == "INNER" { joinType = "INNER JOIN" }
+					joinStrs = append(joinStrs, fmt.Sprintf("%s %s ON %s = %s", joinType, j.Table, j.OnSource, j.OnTarget))
+				}
+				query += " " + strings.Join(joinStrs, " ")
+			}
+			// Apply filters
+			if len(sc.Filters) > 0 {
+				var whereStrs []string
+				for _, f := range sc.Filters {
+					sanitizeIdentifier(f.Column)
+					op := strings.ToUpper(f.Operator)
+					val := strings.ReplaceAll(f.Value, "'", "''")
+					whereStrs = append(whereStrs, fmt.Sprintf("%s %s '%s'", f.Column, op, val))
+				}
+				query += " WHERE " + strings.Join(whereStrs, " AND ")
+			}
+			if config.Limit > 0 {
+				query += fmt.Sprintf(" LIMIT %d", config.Limit)
+			}
+
+			driver := ds.Provider
+			if driver == "postgresql" { driver = "postgres" }
+			db, err := sql.Open(driver, s.buildDSN(ds))
+			if err != nil {
+				errChan <- err
+				return
+			}
+			defer db.Close()
+
+			rows, err := db.QueryContext(ctx, query)
+			if err != nil {
+				errChan <- fmt.Errorf("query failed for source %s: %w", sc.Alias, err)
+				return
+			}
+			defer rows.Close()
+
+			columns, _ := rows.Columns()
+			for rows.Next() {
+				colsData := make([]interface{}, len(columns))
+				colsPtrs := make([]interface{}, len(columns))
+				for i := range colsData { colsPtrs[i] = &colsData[i] }
+				if err := rows.Scan(colsPtrs...); err != nil { continue }
+
+				rowData := make(map[string]interface{})
+				joinKeyValue := ""
+				for i, colName := range columns {
+					val := colsData[i]
+					if b, ok := val.([]byte); ok { val = string(b) }
+					
+					// Prefix with alias for join logic
+					aliasedName := fmt.Sprintf("%s.%s", sc.Alias, colName)
+					rowData[aliasedName] = val
+
+					if colName == config.JoinKey {
+						joinKeyValue = fmt.Sprintf("%v", val)
+					}
+				}
+
+				if joinKeyValue != "" {
+					resultsMu.Lock()
+					if _, exists := results[joinKeyValue]; !exists {
+						results[joinKeyValue] = make(map[string]interface{})
+					}
+					// Merge current row into results map
+					for k, v := range rowData {
+						results[joinKeyValue][k] = v
+					}
+					resultsMu.Unlock()
+				}
+			}
+		}(src)
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	if len(errChan) > 0 {
+		return nil, <-errChan
+	}
+
+	return results, nil
 }

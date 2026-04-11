@@ -433,11 +433,30 @@ export interface PipelineConfig {
     cron?: string;
 }
 
+export interface MultiSourceConfig {
+    sources: SourceConfig[];
+    join_key: string;
+    mappings: ColumnMapping[];
+    limit?: number;
+}
+
+export interface SourceConfig {
+    data_source_id: number;
+    base_table: string;
+    joins: JoinConfig[];
+    filters?: {
+        column: string;
+        operator: string;
+        value: string;
+    }[];
+    alias: string;
+}
+
 export interface TransformationPipeline {
     id?: number;
-    data_source_id: number;
+    data_source_id?: number | null;
     name: string;
-    config: PipelineConfig;
+    config: PipelineConfig | MultiSourceConfig;
 }
 
 
