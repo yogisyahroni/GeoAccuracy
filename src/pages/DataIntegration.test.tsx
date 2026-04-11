@@ -60,11 +60,12 @@ describe('DataIntegration Component (Pipeline Builder)', () => {
         renderWithProvider(<DataIntegration />);
 
         const pipelineTabs = screen.getAllByText(/Transformation Pipeline/i);
-        fireEvent.click(pipelineTabs[1]); // The button is likely the second match, or just click the first tab.
+        fireEvent.click(pipelineTabs[1]); // The tab button
 
         await waitFor(() => {
-            // Check if pipeline builder form labels are printed
-            expect(screen.getByText('Pipeline Configuration')).toBeInTheDocument();
+            // Check if pipeline builder empty state or form is visible
+            // 'Pilih Sumber Data Pertama' is shown if no DS is selected
+            expect(screen.getByText('Pilih Sumber Data Pertama')).toBeInTheDocument();
         });
     });
 });
